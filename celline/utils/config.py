@@ -17,7 +17,6 @@ class Config:
 
 
 class Setting:
-    FILE_PATH = f"{Config.PROJ_ROOT}/setting.toml"
     # model variables
     name: str
     version: float
@@ -25,7 +24,7 @@ class Setting:
 
     @staticmethod
     def validate():
-        if not os.path.isfile(Setting.FILE_PATH):
+        if not os.path.isfile(f"{Config.PROJ_ROOT}/setting.toml"):
             raise FileNotFoundError(
                 "Could not find setting file in your project.")
 
@@ -50,11 +49,11 @@ class Setting:
     @staticmethod
     def read():
         Setting.validate()
-        with open(Setting.FILE_PATH, mode="r") as f:
+        with open(f"{Config.PROJ_ROOT}/setting.toml", mode="r") as f:
             Setting.as_cfg_obj(toml.load(f))
 
     @staticmethod
     def write():
         Setting.validate()
-        with open(Setting.FILE_PATH, mode="w") as f:
+        with open(f"{Config.PROJ_ROOT}/setting.toml", mode="w") as f:
             toml.dump(Setting.as_dict(), f)

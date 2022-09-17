@@ -6,4 +6,4 @@ EXEC_DIR=$(dirname "$(
 PROJ_DIR="$(pwd)"
 
 cd "${EXEC_DIR}" || exit
-python -m cellpline "${EXEC_DIR}" "${PROJ_DIR}" "${1}" "${2}" "${3}" "${4}" "${5}"
+python -m celline "${EXEC_DIR}" "${PROJ_DIR}" "${1}" "${2}" "${3}" "${4}" "${5}"

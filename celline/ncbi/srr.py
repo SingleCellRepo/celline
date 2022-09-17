@@ -1,22 +1,30 @@
 import asyncio
-from ctypes import Union
-from pandas import DataFrame, Series
-from typing import Dict, List
 import re
+from typing import Dict, List, Union
+
+from celline.utils.config import Setting
+from celline.utils.exceptions import NCBIException
+from celline.utils.loader import Loader
+from pandas import DataFrame, Series
 from requests_html import AsyncHTMLSession, HTMLResponse
-from cellpline.utils.exceptions import NCBIException
-from cellpline.utils.config import Setting
-from cellpline.utils.loader import Loader
+
+##Type alias#############################
+NullableString = Union[str, None]
+#########################################
 
 
 class _SRR:
+    # def __init__(self, dumped_filepath: str, cloud_filepath: str, raw_filename: str, sample_name: str, sample_id: NullableString, lane_id: NullableString, read_type: NullableString, run_id: str, gsm_id: str, egress: str, filetype: str, sizeGB: float, spieces: str, location: str) -> None:
+    # self.dumped_filepath = dumped_filepath
+    # self.cloud_filepath = cloud_filepath
+    # pass
     dumped_filepath: str = ""
     cloud_filepath: str = ""
     raw_filename: str = ""
     sample_name: str = ""
-    sample_id: Union[str, None] = None
-    lane_id: Union[str, None] = None
-    read_type: Union[str, None] = None
+    sample_id: NullableString = None
+    lane_id: NullableString = None
+    read_type: NullableString = None
     """
     Read type of each lane, structually defined R1, R2, I1, I2
     """
@@ -55,19 +63,19 @@ class SRR:
         return r
 
     @staticmethod
-    def build(response: HTMLResponse, run_id: str, sample_name: Union[str, None] = None):
+    def build(response: HTMLResponse, run_id: str, sample_name: NullableString = None, use_interactive: bool = True):
 
-        def get_sample_name(sample_name: Union[str, None] = None):
+        def get_sample_name(sample_name: NullableString = None):
             if sample_name is not None:
                 return str(sample_name)
             while(True):
-                sample_name: str = input("Sample name? ")
-                if sample_name != "":
+                sample_name_str: str = input("Sample name? ")
+                if sample_name_str != "":
                     break
                 else:
                     print("Empty sample name is not allowed")
-            return sample_name
-        sample_name: str = get_sample_name(sample_name)
+            return sample_name_str
+        sample_name_str: str = get_sample_name(sample_name)
 
         def get_headers() -> List[str]:
             headers = response.html.find(
@@ -159,7 +167,7 @@ class SRR:
                 else:
                     return None
 
-            def get_laneid(cloud_file_name: str, filetype: str, interactive: bool):
+            def get_laneid(cloud_file_name: str, filetype: str, sample_name: str, interactive: bool):
                 if filetype == "fastq":
                     search_result = re.search(
                         "_L",
@@ -183,7 +191,7 @@ class SRR:
                 else:
                     return None
 
-            def get_readtype(cloud_file_name: str, filetype: str, interactive: bool):
+            def get_readtype(cloud_file_name: str, filetype: str, sample_name: str, interactive: bool):
                 if filetype == "fastq":
                     search_result = re.search(
                         "_R",
@@ -193,12 +201,13 @@ class SRR:
                         index = search_result.span()[1]
                         idnum = f"R{sample_name[index]}"
                     else:
-                        # suspect index
-                        if re.search(
+                        result = re.search(
                             "_I",
                             sample_name
-                        ) is not None:
-                            index = re.search("_I", sample_name).span()[1]
+                        )
+                        # suspect index
+                        if result is not None:
+                            index = result.span()[1]
                             idnum = f"I{sample_name[index]}"
                             return idnum
                         else:
@@ -216,7 +225,7 @@ class SRR:
                 else:
                     return None
 
-            def get_raw_filename(sample_name: str, read_type: Union[str, None], run_id: str, filetype: str):
+            def get_raw_filename(sample_name: str, read_type: NullableString, run_id: str, filetype: str):
                 if filetype == "fastq":
                     if read_type == "R1":
                         raw_filename = f"{run_id}_1.fastq.gz"
@@ -232,7 +241,7 @@ class SRR:
                 else:
                     return sample_name
 
-            def build_dumped_filename(sample_name: str, filetype: str, sample_id: Union[str, None], lane_id: Union[str, None], read_type: Union[str, None]):
+            def build_dumped_filename(sample_name: str, filetype: str, sample_id: NullableString, lane_id: NullableString, read_type: NullableString):
                 if filetype == "fastq":
                     return f"{sample_name}_S{sample_id}_L{lane_id}_{read_type}_001.fastq.gz"
                 elif filetype == "bam":
@@ -247,25 +256,40 @@ class SRR:
             cloud_file_name: str = series["Name"].split("/")[-1]
             srr.sample_id = get_sampleid(cloud_file_name, filetype)
             srr.lane_id = get_laneid(
-                cloud_file_name, filetype, use_interactive)
+                cloud_file_name=cloud_file_name,
+                filetype=filetype,
+                sample_name=sample_name_str,
+                interactive=use_interactive
+            )
             srr.read_type = get_readtype(
-                cloud_file_name, filetype, use_interactive)
-            srr.egress: str = series["Free Egress"]
+                cloud_file_name=cloud_file_name,
+                filetype=filetype,
+                sample_name=sample_name_str,
+                interactive=use_interactive
+            )
+            srr.egress = str(series["Free Egress"])
             srr.raw_filename = get_raw_filename(
-                sample_name, srr.read_type, run_id, filetype)
+                sample_name=sample_name_str,
+                read_type=srr.read_type,
+                run_id=run_id,
+                filetype=filetype
+            )
             srr.dumped_filepath = build_dumped_filename(
-                sample_name,
-                filetype,
+                sample_name=sample_name_str,
+                filetype=srr.filetype,
                 sample_id=srr.sample_id,
-                lane_id=srr.lane_id.capitalize,
+                lane_id=srr.lane_id,
                 read_type=srr.read_type
             )
             return srr
-        runtable.apply(
-            lambda df: build_SRR(df, run_id), axis=1
-        )
+        for col_n in range(len(runtable.index)):
+            build_SRR(
+                series=runtable[runtable.index == col_n],
+                run_id=run_id,
+                use_interactive=use_interactive
+            )
 
-    def __init__(self, run_id: str, sample_name: Union[str, None] = None) -> None:
+    def __init__(self, run_id: str, sample_name: NullableString = None) -> None:
         # Run fetch process
         response = asyncio\
             .get_event_loop()\

@@ -1,8 +1,8 @@
 import sys
 from pandas import DataFrame
-from cellpline.ncbi.srr import SRR
-from cellpline.utils.exceptions import NCBIException
-from cellpline.utils.config import Config
+from celline.ncbi.srr import SRR
+from celline.utils.exceptions import NCBIException
+from celline.utils.config import Config
 import toml
 
 
