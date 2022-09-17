@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "/home/yuyasato/work1/Projects/lib/cellpline/cellpline"
+    ]
+}
