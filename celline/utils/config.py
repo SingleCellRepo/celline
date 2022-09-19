@@ -1,6 +1,7 @@
 import os
 from typing import Any, Dict
-import toml
+
+import toml  # type: ignore
 
 
 class Config:

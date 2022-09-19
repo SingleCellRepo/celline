@@ -1,12 +1,14 @@
 import sys
-from pandas import DataFrame
+
+import toml  # type: ignore
+
 from celline.ncbi.srr import SRR
-from celline.utils.exceptions import NCBIException
 from celline.utils.config import Config
-import toml
+from celline.utils.exceptions import NCBIException
 
 
 class Test:
+    @staticmethod
     def entry():
         with open(f"{Config.PROJ_ROOT}/setting.toml", mode="r") as f:
             print(toml.load(f))

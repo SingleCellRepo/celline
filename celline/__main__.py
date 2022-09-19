@@ -1,3 +1,4 @@
+import asyncio
 import sys
 from typing import List
 
@@ -23,7 +24,11 @@ if __name__ == '__main__':
     options = sys.argv[4:]
     if cmd == "add":
         run_id = pull_n_option(options, 0)
-        SRR(run_id)
+        asyncio\
+            .get_event_loop()\
+            .run_until_complete(
+                SRR.add(run_id)
+            )
     elif cmd == "dump":
         print("Dumping")
     elif (cmd == "help") | (cmd == "-h"):

@@ -1,22 +1,24 @@
-import sys
 import asyncio
+import sys
+import threading
 import time
 from typing import Union
-import threading
+
 
 class Loader(object):
     def __init__(self):
         self.format: str = "[{SYMBOL}] {STATUS}"
         self.is_loading: bool = False
-        self.delay: float = 0.2
-        self.symbols: list[str] = ['/', '-', '\\', '|']
-        self.finish_symbol = '✓'
-        self.fail_symbol = 'x'
+        self.delay: float = 0.1
+        # self.symbols: list[str] = ['⠁', '⠃', '⠇', '⠧', '⠷', '⠿', '⠾', '⠾']
+        self.symbols: list[str] = ['⠁', '⠂', '⠄', '⠠', '⠐', '⠈']
+        self.finish_symbol = '\033[32m✓\033[0m'
+        self.fail_symbol = '\033[31mx\033[0m'
         self.current_status = None
         self.current_status_output = None
 
     @staticmethod
-    def FormatStatus(format: str, symbol: str, status: Union[str, None], padding: int = 0, padding_char: str = ' '):
+    def FormatStatus(format: str, symbol: str, status: str, padding: int = 0, padding_char: str = ' '):
         return format.replace('{SYMBOL}', symbol).replace('{STATUS}', status).ljust(padding, padding_char)
 
     @staticmethod
@@ -108,7 +110,7 @@ class LoaderAsync(Loader):
 
         await asyncio.sleep(self.delay)
 
-    def start_loading(self, status: str):
+    def start_loading_asyn(self, status: str):
         asyncio.create_task(self.start_loading_async(status))
 
     def update_status(self, new_status: str):

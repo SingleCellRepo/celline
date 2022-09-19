@@ -1,0 +1,4 @@
+dumped_filepath	run_id	cloud_filepath	filetype	location	sample_id	lane_id	read_type	egress	raw_filename	sizeGB	gsm_id	spieces
+test_S1_L001_I1_001.fastq.gz	SRR12541224	s3://sra-pub-src-13/SRR12541224/Adult_S1_L001_I1_001.fastq.gz.1	fastq	AWS	1	001	I1	-	SRR12541224_3.fastq.gz	2.4	GSM4752166	Musmusculus
+test_S1_L001_R1_001.fastq.gz	SRR12541224	s3://sra-pub-src-13/SRR12541224/Adult_S1_L001_R1_001.fastq.gz.1	fastq	AWS	1	001	R1	-	SRR12541224_1.fastq.gz	8.0	GSM4752166	Musmusculus
+test_S1_L001_R2_001.fastq.gz	SRR12541224	s3://sra-pub-src-13/SRR12541224/Adult_S1_L001_R2_001.fastq.gz.1	fastq	AWS	1	001	R2	-	SRR12541224_2.fastq.gz	23.0	GSM4752166	Musmusculus

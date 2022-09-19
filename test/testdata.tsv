@@ -1,0 +1,4 @@
+	index	Location	Name	Free Egress	Access Type
+0	0	AWS	s3://sra-pub-src-13/SRR12541224/Adult_S1_L001_I1_001.fastq.gz.1	-	Use Cloud Data Delivery
+1	2	AWS	s3://sra-pub-src-13/SRR12541224/Adult_S1_L001_R1_001.fastq.gz.1	-	Use Cloud Data Delivery
+2	4	AWS	s3://sra-pub-src-13/SRR12541224/Adult_S1_L001_R2_001.fastq.gz.1	-	Use Cloud Data Delivery
