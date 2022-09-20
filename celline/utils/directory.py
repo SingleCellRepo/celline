@@ -35,12 +35,16 @@ class Directory:
                 for targetdir in runs["dumped_filepath"].tolist():
                     os.makedirs(
                         f'{Config.PROJ_ROOT}/resources/{"/".join(targetdir.split("/")[0:-1])}', exist_ok=True)
-                os.makedirs(f"{parent}/0_dumped/{gsm}/bams", exist_ok=True)
+                os.makedirs(f"{parent}/0_dumped/{gsm}/bam", exist_ok=True)
             os.makedirs(f"{parent}/1_count", exist_ok=True)
             os.makedirs(f"{parent}/2_seurat", exist_ok=True)
             os.makedirs(f"{parent}/2_seurat/__integrated", exist_ok=True)
             for gsm in gsms:
                 os.makedirs(f"{parent}/2_seurat/{gsm}", exist_ok=True)
+        os.makedirs(f"{Config.PROJ_ROOT}/jobs/logs", exist_ok=True)
+        os.makedirs(f"{Config.PROJ_ROOT}/jobs/auto/0_dump", exist_ok=True)
+        os.makedirs(f"{Config.PROJ_ROOT}/jobs/auto/1_count", exist_ok=True)
+        os.makedirs(f"{Config.PROJ_ROOT}/jobs/auto/2_seurat", exist_ok=True)
 
     @staticmethod
     def clean():

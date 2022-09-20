@@ -5,4 +5,4 @@
 #PBS -N @jobname@
 #PBS -j eo
 #PBS -m ae
-#PBS -e @log@_@jobname@.log
+#PBS -e @log@

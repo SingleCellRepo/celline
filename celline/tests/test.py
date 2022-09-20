@@ -12,7 +12,11 @@ from celline.utils.exceptions import NCBIException
 class Test:
     @staticmethod
     def entry():
-        Directory.initialize()
+        SRR.dump(
+            jobsystem=JobSystem.PBS,
+            cluster_server_name="cosmos",
+            total_nthread=2
+        )
         # print(
         #     DataFrame(
         #         index=["TEST", "TEST2"],

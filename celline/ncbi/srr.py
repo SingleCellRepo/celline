@@ -2,6 +2,7 @@ from datetime import datetime
 from operator import index
 import os
 import re
+import subprocess
 from time import time
 from typing import Dict, List
 
@@ -15,6 +16,7 @@ from celline.jobs.jobs import Jobs, JobSystem  # type: ignore
 from celline.utils.config import Config, Setting
 from celline.utils.directory import Directory
 from celline.utils.exceptions import (InvalidDataFrameHeaderException,
+                                      InvalidServerNameException,
                                       NCBIException)
 from celline.utils.loader import Loader
 from celline.utils.typing import NullableString
@@ -56,14 +58,6 @@ class SRR:
     @staticmethod
     def get_runtable():
         return pd.read_csv(f"{Config.PROJ_ROOT}/runs.tsv", sep="\t")
-
-    # @staticmethod
-    # def get_SRR():
-    #     runs = SRR.get_runtable()
-    #     srrs: List[_SRR] = []
-    #     for col_n in runs.index:
-    #         srrs.append(_SRR(runs[runs.index == col_n]))
-    #     return srrs
 
     @staticmethod
     async def __fetch(run_id: str, visualize=True):
@@ -428,7 +422,7 @@ class SRR:
         visualize=True,
     ):
         """
-        Auto-fetch and write the given run_id information in the SRA Run list file (PROJ_ROOT/runs.tsv).
+        Auto-fetch and write the given run_id information. fastq file or bam will be added.
 
          Parameters
          ----------
@@ -484,6 +478,14 @@ class SRR:
 
     @staticmethod
     async def add_range(run_list_path: str):
+        """
+        Auto-fetch and write the given run_id information in the SRA Run list file (PROJ_ROOT/runs.tsv).
+
+         Parameters
+         ----------
+         run_list_path : str
+             SRA Run list path
+        """
         COLUMS = ["SRR_ID", "sample_name"]
         if not os.path.isfile(run_list_path):
             df = DataFrame(columns=COLUMS, index=None)
@@ -518,21 +520,24 @@ class SRR:
             bar.clear()
 
     @staticmethod
-    def dump(jobsystem: JobSystem, cluster_server_name: str, total_nthread: int):
+    def dump(jobsystem: JobSystem, total_nthread: int, cluster_server_name: NullableString = None):
+        """
+        Download all sequence files that have not yet downloaded in the project via the specified job system.
+
+        Parameters
+        ----------
+        jobsystem : JobSystem[celline.jobs.jobs.JobSystem]
+            Job system to dump data.
+        total_nthread : int
+            Total number of thread to dump data.
+            The dumping process occupy 1 thread for each cluster computer to download in parallel.
+        cluster_server_name: NullableString[str or None] = None
+            Cluster server name to use PBS system. If jobsystem is default_bash or nohup, you will assign None.
+        """
         Directory.initialize()
         nowtime = str(time())
-        # Build PBS header
-        header = ""
-        if jobsystem == JobSystem.PBS:
-            header = Jobs.build(
-                template_path=f"{Config.EXEC_ROOT}/templates/controllers/PBS.csh",
-                replace_params={
-                    "cluster": cluster_server_name,
-                    "log": f"{Config.PROJ_ROOT}/logs/{nowtime}_",
-                    "jobname": "dump",
-                    "nthread": 1
-                }
-            )
+        os.makedirs(
+            f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
         runtable = SRR.get_runtable()
         runtable["dumped_filepath"] = runtable\
             .apply(
@@ -548,39 +553,74 @@ class SRR:
         del runtable["fileexists"]
         total_size = runtable.index.size
         if total_size < total_nthread:
-            nthread = total_size
+            total_nthread = total_size
         eachsize = total_size//total_nthread
         for threadnum in range(total_nthread):
-            job_contents: List[str] = []
+            write_target_sh = []
+            log_location = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/logs"
+            os.makedirs(log_location, exist_ok=True)
+            if jobsystem == JobSystem.PBS:
+                if cluster_server_name is None:
+                    raise InvalidServerNameException(
+                        "Please specify cluster server name (like yuri) to use PBS job system.")
+                write_target_sh = Jobs.build(
+                    template_path=f"{Config.EXEC_ROOT}/templates/controllers/PBS.csh",
+                    replace_params={
+                        "cluster": cluster_server_name,
+                        "log": f"{log_location}/dump_cluster_{threadnum}.log",
+                        "jobname": "dump",
+                        "nthread": 1
+                    }
+                )
             if threadnum == total_nthread - 1:
                 target_data = runtable[eachsize *
                                        threadnum:runtable.index.size].reset_index()
             else:
                 target_data = runtable[eachsize *
                                        threadnum:eachsize * (threadnum + 1)].reset_index()
-            for ncol in range(len(target_data.index)):
-                targetcol = target_data[target_data.index == ncol].iloc[0]
-                if targetcol["filetype"] == "bam":
-                    job_contents.append(
-                        Jobs.build(
-                            template_path=f"{Config.EXEC_ROOT}/templates/tasks/wget.tsh",
-                            replace_params={
-                                "parentdir": "/".join(targetcol["dumped_filepath"].split("/")[0:-1]),
-                                "cloudpath": targetcol["cloud_filepath"],
-                                "raw_name": targetcol["raw_filename"],
-                                "dump_name": targetcol["dumped_filename"]
-                            }
-                        )
+            for run_id in target_data["run_id"].unique().tolist():
+                targetcol = target_data[target_data["run_id"] == run_id]
+                rootdir = "/".join(
+                    targetcol["dumped_filepath"].iloc[0].split("/")[0:-1])
+                if targetcol["filetype"].iloc[0] == "bam":
+                    write_target_sh.append(
+                        f"""
+cd "{rootdir}" || exit
+wget {targetcol["cloud_filepath"].iloc[0]}
+mv {targetcol["raw_filename"].iloc[0]} {targetcol["dumped_filename"].iloc[0]}
+"""
                     )
-                elif targetcol["filetype"] == "fastq":
-                    job_contents.append(
-                        Jobs.build(
-                            template_path=f"{Config.EXEC_ROOT}/templates/tasks/scfastq_dump.tsh",
-                            replace_params={
-                                "parentdir": "/".join(targetcol["dumped_filepath"].split("/")[0:-1]),
-                                "srrid": targetcol["run_id"],
-                                "raw_name": targetcol["raw_filename"],
-                                "dump_name": targetcol["dumped_filename"]
-                            }
-                        )
+                elif targetcol["filetype"].iloc[0] == "fastq":
+                    write_target_sh.append(
+                        f"""
+cd "{rootdir}" || exit
+scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
+"""
                     )
+                for target_rawfilename in targetcol["raw_filename"].unique().tolist():
+                    moved_name = targetcol[targetcol["raw_filename"] ==
+                                           target_rawfilename]["dumped_filename"].tolist()[0]
+                    write_target_sh.append(
+                        f'mv {target_rawfilename} {moved_name}\n')
+            srcfile = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/dump_cluster_{threadnum}.sh"
+            with open(srcfile, mode="w") as f:
+                f.writelines(write_target_sh)
+            if jobsystem == JobSystem.default_bash:
+                subprocess.run(
+                    f"bash {srcfile}",
+                    shell=True
+                )
+            elif jobsystem == JobSystem.nohup:
+                subprocess.run(
+                    f"nohup bash {srcfile} > {log_location}/dump_cluster_{threadnum}.log &",
+                    shell=True
+                )
+            elif jobsystem == JobSystem.PBS:
+                subprocess.run(
+                    f"qsub {srcfile}",
+                    shell=True
+                )
+
+    @staticmethod
+    def count(jobsystem: JobSystem, total_nthread: int, cluster_server_name: NullableString = None):
+        print("")

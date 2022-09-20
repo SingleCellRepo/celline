@@ -1,12 +1,12 @@
 from enum import Enum
 import os
 import re
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 class Jobs:
     @staticmethod
-    def build(template_path: str, replace_params: Dict[str, Any]):
+    def build(template_path: str, replace_params: Dict[str, Any]) -> List[str]:
         """
         Build job script
         """
@@ -20,7 +20,7 @@ class Jobs:
                     line = re.sub(
                         f'@{param}@', f"{replace_params[param]}", line, 10)
                 target_sh.append(line)
-        return str("\n".join(target_sh))
+        return target_sh
 
 
 class JobSystem(Enum):
