@@ -2,10 +2,11 @@ import sys
 
 import toml  # type: ignore
 
+from celline.jobs.jobs import JobSystem  # type:ignore
 from celline.ncbi.srr import SRR
 from celline.utils.config import Config
-from celline.utils.exceptions import NCBIException
 from celline.utils.directory import Directory
+from celline.utils.exceptions import NCBIException
 
 
 class Test:

@@ -24,7 +24,7 @@ class Directory:
         runs = Directory.runs()
         gses = runs["gse_id"].drop_duplicates().tolist()
         for gse in gses:
-            parent = f"{Config.PROJ_ROOT}/{gse}"
+            parent = f"{Config.PROJ_ROOT}/resources/{gse}"
             os.makedirs(parent, exist_ok=True)
             gsms: List[str] = runs[runs["gse_id"] ==
                                    gse]["gsm_id"].drop_duplicates().tolist()
@@ -34,7 +34,7 @@ class Directory:
                 os.makedirs(f"{parent}/0_dumped/{gsm}/fastqs", exist_ok=True)
                 for targetdir in runs["dumped_filepath"].tolist():
                     os.makedirs(
-                        f'{Config.PROJ_ROOT}/{"/".join(targetdir.split("/")[0:-1])}', exist_ok=True)
+                        f'{Config.PROJ_ROOT}/resources/{"/".join(targetdir.split("/")[0:-1])}', exist_ok=True)
                 os.makedirs(f"{parent}/0_dumped/{gsm}/bams", exist_ok=True)
             os.makedirs(f"{parent}/1_count", exist_ok=True)
             os.makedirs(f"{parent}/2_seurat", exist_ok=True)
