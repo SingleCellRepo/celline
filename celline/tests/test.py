@@ -5,13 +5,13 @@ import toml  # type: ignore
 from celline.ncbi.srr import SRR
 from celline.utils.config import Config
 from celline.utils.exceptions import NCBIException
+from celline.utils.directory import Directory
 
 
 class Test:
     @staticmethod
     def entry():
-        with open(f"{Config.PROJ_ROOT}/setting.toml", mode="r") as f:
-            print(toml.load(f))
+        Directory.initialize()
         # print(
         #     DataFrame(
         #         index=["TEST", "TEST2"],
