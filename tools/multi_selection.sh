@@ -5,7 +5,7 @@ function print_menu() {
     local current_selection="$2"
     local queued_selection=($3)
     local menu_size="${#menu_items[@]}"
-    echo "${message}"
+    echo "Please press select space key to install component"
     for ((i = 0; i < "$menu_size"; ++i)); do
         if [ "${queued_selection[i]}" = "selected" ]; then
             if [ "$i" = "$current_selection" ]; then

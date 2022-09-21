@@ -5,7 +5,7 @@ from typing import List
 from celline.jobs.jobs import JobSystem  # type:ignore
 from celline.ncbi.genome import Genome
 from celline.ncbi.srr import SRR
-from celline.tests.test import Test
+from celline.test.test import Test
 from celline.utils.config import Config, Setting
 from celline.utils.help import Help
 
