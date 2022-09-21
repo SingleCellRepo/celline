@@ -1,9 +1,0 @@
-[H[2J[3J
-[32m○  test1[m
-   test2
-   test3
-[H[2J[3J
-   test1
-[32m○  test2[m
-   test3
-
