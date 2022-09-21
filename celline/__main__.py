@@ -2,6 +2,8 @@ import asyncio
 import sys
 from typing import List
 
+from celline.jobs.jobs import JobSystem  # type:ignore
+from celline.ncbi.genome import Genome
 from celline.ncbi.srr import SRR
 from celline.tests.test import Test
 from celline.utils.config import Config, Setting
@@ -15,13 +17,21 @@ def pull_n_option(list_op: List[str], n: int):
 
 
 if __name__ == '__main__':
+    cmd = sys.argv[3]
+    options = sys.argv[4:]
+    if cmd == "create":
+        print("Create new")
+        quit()
+    elif cmd == "init":
+        print("Initialize")
+        quit()
+
     Config.initialize(
         exec_root_path=sys.argv[1],
         proj_root_path=sys.argv[2]
     )
-    Setting.read()
-    cmd = sys.argv[3]
-    options = sys.argv[4:]
+    Setting.initialize()
+    Genome.initialize()
     if cmd == "add":
         run_id = pull_n_option(options, 0)
         asyncio\
@@ -34,4 +44,10 @@ if __name__ == '__main__':
     elif (cmd == "help") | (cmd == "-h"):
         Help.show()
     elif cmd == "test":
-        Test.entry()
+        SRR.dump(
+            jobsystem=JobSystem.PBS,
+            max_nthread=3,
+            cluster_server_name="cosmos"
+        )
+    elif cmd == "addref":
+        print(pull_n_option(options, 0))

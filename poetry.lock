@@ -805,7 +805,7 @@ tests = ["cython", "littleutils", "pygments", "typeguard", "pytest"]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
@@ -929,7 +929,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "77a5c0e745967d7045521766e51391daee5486c9813f5808860fd1d47178177a"
+content-hash = "8bf70422d86ebd6e5c17a71eb5766924b3af8a002e7f6e44ff89486191a7b332"
 
 [metadata.files]
 appdirs = []

@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 import shutil
 from typing import List
@@ -5,6 +6,14 @@ from typing import List
 import pandas as pd  # type:ignore
 
 from celline.utils.config import Config
+
+
+class DirectoryType(Enum):
+    dumped_file = 0
+    count = 1
+    counted = 2
+    seurat = 3
+    seurat_integrated = 4
 
 
 class Directory:
@@ -52,3 +61,18 @@ class Directory:
         gses = runs["gse_id"].drop_duplicates().tolist()
         for gse in gses:
             shutil.rmtree(f"{Config.PROJ_ROOT}/{gse}", ignore_errors=True)
+
+    @staticmethod
+    def get_filepath(dumped_filename: str, type: DirectoryType):
+        target = Directory.runs()
+        target = target[target["dumped_filename"] == dumped_filename].iloc[0]
+        if type == DirectoryType.dumped_file:
+            return f'{Config.PROJ_ROOT}/resources/{target["dumped_filepath"].iloc[0]}'
+        elif type == DirectoryType.count:
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/1_count'
+        elif type == DirectoryType.counted:
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/1_count/{target["gsm_id"].iloc[0]}/out'
+        elif type == DirectoryType.seurat:
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/2_seurat/{target["gsm_id"].iloc[0]}'
+        elif type == DirectoryType.seurat_integrated:
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/2_seurat/__integrated'

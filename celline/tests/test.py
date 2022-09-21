@@ -1,4 +1,6 @@
+import subprocess
 import sys
+from typing import Literal, Union
 
 import toml  # type: ignore
 
@@ -12,11 +14,19 @@ from celline.utils.exceptions import NCBIException
 class Test:
     @staticmethod
     def entry():
-        SRR.dump(
-            jobsystem=JobSystem.PBS,
-            cluster_server_name="cosmos",
-            total_nthread=2
+        # SRR.dump(
+        #     jobsystem=JobSystem.PBS,
+        #     cluster_server_name="cosmos",
+        #     total_nthread=2
+        # )
+
+        process = subprocess.run(
+            'read -p "Hit enter: "',
+            shell=True,
+            stdout=subprocess.PIPE
         )
+        print(process.stdout.decode("UTF-8"))
+
         # print(
         #     DataFrame(
         #         index=["TEST", "TEST2"],

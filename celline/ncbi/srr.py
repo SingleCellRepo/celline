@@ -13,8 +13,9 @@ from requests_html import AsyncHTMLSession, HTMLResponse  # type: ignore
 from tqdm import tqdm  # type: ignore
 
 from celline.jobs.jobs import Jobs, JobSystem  # type: ignore
+from celline.ncbi.genome import Genome
 from celline.utils.config import Config, Setting
-from celline.utils.directory import Directory
+from celline.utils.directory import Directory, DirectoryType
 from celline.utils.exceptions import (InvalidDataFrameHeaderException,
                                       InvalidServerNameException,
                                       NCBIException)
@@ -520,7 +521,7 @@ class SRR:
             bar.clear()
 
     @staticmethod
-    def dump(jobsystem: JobSystem, total_nthread: int, cluster_server_name: NullableString = None):
+    def dump(jobsystem: JobSystem, max_nthread: int, cluster_server_name: NullableString = None):
         """
         Download all sequence files that have not yet downloaded in the project via the specified job system.
 
@@ -528,7 +529,7 @@ class SRR:
         ----------
         jobsystem : JobSystem[celline.jobs.jobs.JobSystem]
             Job system to dump data.
-        total_nthread : int
+        max_nthread : int
             Total number of thread to dump data.
             The dumping process occupy 1 thread for each cluster computer to download in parallel.
         cluster_server_name: NullableString[str or None] = None
@@ -551,11 +552,11 @@ class SRR:
         )
         runtable = runtable[~runtable["fileexists"]]
         del runtable["fileexists"]
-        total_size = runtable.index.size
-        if total_size < total_nthread:
-            total_nthread = total_size
-        eachsize = total_size//total_nthread
-        for threadnum in range(total_nthread):
+        run_ids: List[str] = runtable["run_id"].unique().tolist()
+        if len(run_ids) < max_nthread:
+            max_nthread = len(run_ids)
+        eachsize = len(run_ids)//max_nthread
+        for threadnum in range(max_nthread):
             write_target_sh = []
             log_location = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/logs"
             os.makedirs(log_location, exist_ok=True)
@@ -572,13 +573,15 @@ class SRR:
                         "nthread": 1
                     }
                 )
-            if threadnum == total_nthread - 1:
-                target_data = runtable[eachsize *
-                                       threadnum:runtable.index.size].reset_index()
+            if threadnum == max_nthread - 1:
+                target_run = run_ids[eachsize *
+                                     threadnum: len(run_ids) - 1]
             else:
-                target_data = runtable[eachsize *
-                                       threadnum:eachsize * (threadnum + 1)].reset_index()
-            for run_id in target_data["run_id"].unique().tolist():
+                target_run = run_ids[eachsize *
+                                     threadnum:eachsize * (threadnum + 1)]
+            target_data = runtable[runtable["run_id"].isin(
+                target_run)].reset_index()
+            for run_id in target_run:
                 targetcol = target_data[target_data["run_id"] == run_id]
                 rootdir = "/".join(
                     targetcol["dumped_filepath"].iloc[0].split("/")[0:-1])
@@ -597,6 +600,113 @@ cd "{rootdir}" || exit
 scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
 """
                     )
+                    for target_rawfilename in targetcol["raw_filename"].unique().tolist():
+                        moved_name = targetcol[targetcol["raw_filename"] ==
+                                               target_rawfilename]["dumped_filename"].tolist()[0]
+                        write_target_sh.append(
+                            f'mv {target_rawfilename} {moved_name}\n')
+            srcfile = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/dump_cluster_{threadnum}.sh"
+            with open(srcfile, mode="w") as f:
+                f.writelines(write_target_sh)
+            if jobsystem == JobSystem.default_bash:
+                subprocess.run(
+                    f"bash {srcfile}",
+                    shell=True
+                )
+            elif jobsystem == JobSystem.nohup:
+                subprocess.run(
+                    f"nohup bash {srcfile} > {log_location}/dump_cluster_{threadnum}.log &",
+                    shell=True
+                )
+            elif jobsystem == JobSystem.PBS:
+                subprocess.run(
+                    f"qsub {srcfile}",
+                    shell=True
+                )
+
+    @staticmethod
+    def count(jobsystem: JobSystem, each_nthread: int, max_nthread: int, cluster_server_name: NullableString = None):
+        Directory.initialize()
+        nowtime = str(time())
+        os.makedirs(
+            f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
+        runtable = Directory.runs()
+
+        # dumpしたファイルはあるが、まだcountしていないデータのみを対象とする
+        runtable["run"] = runtable.apply(
+            lambda ser: os.path.isfile(
+                Directory.get_filepath(
+                    ser["dumped_filename"], type=DirectoryType.dumped_file
+                )
+            ) & os.path.isdir(
+                Directory.get_filepath(
+                    ser["dumped_filename"], type=DirectoryType.counted
+                )
+            ) == False,
+            axis=1
+        )
+        runtable = runtable[runtable["run"]]
+        del runtable["run"]
+        ############################################
+        total_size = runtable.index.size
+        pararell_num = (max_nthread//each_nthread)
+        if total_size*each_nthread < max_nthread:
+            max_nthread = total_size*each_nthread
+        eachsize = total_size//pararell_num
+
+        for threadnum in range(pararell_num):
+            write_target_sh = []
+            log_location = f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}/logs"
+            os.makedirs(log_location, exist_ok=True)
+            if jobsystem == JobSystem.PBS:
+                if cluster_server_name is None:
+                    raise InvalidServerNameException(
+                        "Please specify cluster server name (like yuri) to use PBS job system.")
+                write_target_sh = Jobs.build(
+                    template_path=f"{Config.EXEC_ROOT}/templates/controllers/PBS.csh",
+                    replace_params={
+                        "cluster": cluster_server_name,
+                        "log": f"{log_location}/count_cluster_{threadnum}.log",
+                        "jobname": "count",
+                        "nthread": each_nthread
+                    }
+                )
+            if threadnum == max_nthread - 1:
+                target_data = runtable[eachsize *
+                                       threadnum:runtable.index.size].reset_index()
+            else:
+                target_data = runtable[eachsize *
+                                       threadnum:eachsize * (threadnum + 1)].reset_index()
+            for run_id in target_data["gsm_id"].unique().tolist():
+                targetcol = target_data[target_data["gsm_id"] == run_id]
+                rootdir = Directory.get_filepath(
+                    targetcol["dumped_filename"].iloc[0], DirectoryType.count)
+                raw_dir = f'{Config.PROJ_ROOT}/{targetcol["gse_id"].iloc[0]}/0_dumped/{targetcol["gsm_id"].iloc[0]}'
+                if targetcol["filetype"].iloc[0] == "bam":
+                    write_target_sh.append(
+                        f"""
+cd {raw_dir}
+echo "Converting bam to fastq files."
+cellranger bamtofastq --nthreads={each_nthread} {targetcol["gsm_id"].iloc[0]}.bam fastqs
+counted={rootdir}
+raw_path={raw_dir}/fastqs
+dirpath=$(poetry run python {Config.EXEC_ROOT}/bin/runtime/get_subdir.py $raw_path)
+cd $counted
+cellranger count --id=S_$cnt --fastqs=$dirpath --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
+"""
+                    )
+                elif targetcol["filetype"].iloc[0] == "fastq":
+                    write_target_sh.append(
+                        f"""
+counted={Directory.get_filepath(targetcol["dumped_filename"].iloc[0], DirectoryType.count)}
+raw_path={raw_dir}/fastqs
+dirpath=$(python $GLOB_ROOT/bin/py/hook_counting.py $raw_path)
+cd $counted
+cellranger count --id=S_$cnt --fastqs=$dirpath --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
+"""
+                    )
+                else:
+                    raise NCBIException("Unknown protocol file")
                 for target_rawfilename in targetcol["raw_filename"].unique().tolist():
                     moved_name = targetcol[targetcol["raw_filename"] ==
                                            target_rawfilename]["dumped_filename"].tolist()[0]
@@ -620,7 +730,4 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
                     f"qsub {srcfile}",
                     shell=True
                 )
-
-    @staticmethod
-    def count(jobsystem: JobSystem, total_nthread: int, cluster_server_name: NullableString = None):
         print("")

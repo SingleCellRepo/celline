@@ -48,13 +48,13 @@ class Setting:
         Setting.wait_time = dict["fetch"]["wait_time"]
 
     @staticmethod
-    def read():
+    def initialize():
         Setting.validate()
         with open(f"{Config.PROJ_ROOT}/setting.toml", mode="r") as f:
             Setting.as_cfg_obj(toml.load(f))
 
     @staticmethod
-    def write():
+    def flush():
         Setting.validate()
         with open(f"{Config.PROJ_ROOT}/setting.toml", mode="w") as f:
             toml.dump(Setting.as_dict(), f)
