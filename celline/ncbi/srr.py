@@ -349,7 +349,7 @@ class SRR:
                 srr.dumped_filepath = f"{srr.gse_id}/0_dumped/{srr.gsm_id}/fastqs/rep{repid}/{srr.dumped_filename}"
             elif srr.filetype == "bam":
                 srr.dumped_filepath = (
-                    f"{srr.gse_id}/0_dumped/{srr.gsm_id}/bam/{srr.dumped_filename}"
+                    f"{srr.gse_id}/0_dumped/{srr.gsm_id}/bams/{srr.dumped_filename}"
                 )
             else:
                 raise NCBIException("Unrecognized filetype")
@@ -542,7 +542,7 @@ class SRR:
         runtable = SRR.get_runtable()
         runtable["dumped_filepath"] = runtable\
             .apply(
-                lambda ser: f"{Config.PROJ_ROOT}/{ser['dumped_filepath']}",
+                lambda ser: f"{Config.PROJ_ROOT}/resources/{ser['dumped_filepath']}",
                 axis=1
         )
         runtable["fileexists"] = runtable\
@@ -554,6 +554,7 @@ class SRR:
         del runtable["fileexists"]
         run_ids: List[str] = runtable["run_id"].unique().tolist()
         if len(run_ids) < max_nthread:
+            print("[WARNING] The number of threads was suppressed due to the number of threads exceeding the required number.")
             max_nthread = len(run_ids)
         eachsize = len(run_ids)//max_nthread
         for threadnum in range(max_nthread):
@@ -575,7 +576,7 @@ class SRR:
                 )
             if threadnum == max_nthread - 1:
                 target_run = run_ids[eachsize *
-                                     threadnum: len(run_ids) - 1]
+                                     threadnum: len(run_ids)]
             else:
                 target_run = run_ids[eachsize *
                                      threadnum:eachsize * (threadnum + 1)]
@@ -687,7 +688,7 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
                         f"""
 cd {raw_dir}
 echo "Converting bam to fastq files."
-cellranger bamtofastq --nthreads={each_nthread} {targetcol["gsm_id"].iloc[0]}.bam fastqs
+cellranger bamtofastq --nthreads={each_nthread} bams/{targetcol["gsm_id"].iloc[0]}.bam fastqs
 counted={rootdir}
 raw_path={raw_dir}/fastqs
 dirpath=$(poetry run python {Config.EXEC_ROOT}/bin/runtime/get_subdir.py $raw_path)

@@ -45,8 +45,8 @@ if __name__ == '__main__':
         Help.show()
     elif cmd == "test":
         SRR.dump(
-            jobsystem=JobSystem.PBS,
-            max_nthread=3,
+            jobsystem=JobSystem.default_bash,
+            max_nthread=1,
             cluster_server_name="cosmos"
         )
     elif cmd == "addref":
