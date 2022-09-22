@@ -59,24 +59,31 @@ bash "${source_loc}/tools/multi_selection.sh" "${selection[*]}"
 result=$(cat "./sel_res.txt")
 rm "./sel_res.txt"
 
+if [ $INSTALL_POETRY ]; then
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+fi
+
+cd "${install_dir}/celline" || exit
+
+poetry install
+
 echo "${result[@]}" | xargs -n 1 | grep -E "^HumanReferenceGenome$" >/dev/null
 if [ $? -eq 0 ]; then
     cd "${install_dir}/genomes" || exit
     wget https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2020-A.tar.gz -O "${install_dir}/genomes/refdata-gex-GRCh38-2020-A.tar.gz"
-    tar -zxvf sratoolkit.3.0.0-centos_linux64.tar.gz
-    rm sratoolkit.3.0.0-centos_linux64.tar.gz
-else
-    echo " does not exist."
+    tar -zxvf refdata-gex-GRCh38-2020-A.tar.gz
+    rm refdata-gex-GRCh38-2020-A.tar.gz
+    cd "${install_dir}/celline" || exit
+    poetry addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
 fi
 
-# echo "${result[@]}"
-# if [ $INSTALL_POETRY ]; then
-#     curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-# fi
-
-####################
-# declare -a arr=("test1" "test2" "test3")
-# bash ./multi_selection.sh "${arr[*]}"
-# result=$(cat "./sel_res.txt")
-# rm "./sel_res.txt"
-# echo "${result[@]}"
+### TODO Write mouse ref genome
+echo "${result[@]}" | xargs -n 1 | grep -E "^MouseReferenceGenome$" >/dev/null
+if [ $? -eq 0 ]; then
+    cd "${install_dir}/genomes" || exit
+    wget https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2020-A.tar.gz -O "${install_dir}/genomes/refdata-gex-GRCh38-2020-A.tar.gz"
+    tar -zxvf refdata-gex-GRCh38-2020-A.tar.gz
+    rm refdata-gex-GRCh38-2020-A.tar.gz
+    cd "${install_dir}/celline" || exit
+    poetry addref "Musmusculus" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
+fi
