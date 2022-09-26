@@ -65,7 +65,7 @@ if [ $? -eq 0 ]; then
     tar -zxvf refdata-gex-GRCh38-2020-A.tar.gz
     rm refdata-gex-GRCh38-2020-A.tar.gz
     cd "${install_dir}/celline" || exit
-    poetry addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
+    poetry run python addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
 fi
 
 ### TODO Write mouse ref genome
@@ -76,13 +76,20 @@ if [ $? -eq 0 ]; then
     tar -zxvf refdata-gex-GRCh38-2020-A.tar.gz
     rm refdata-gex-GRCh38-2020-A.tar.gz
     cd "${install_dir}/celline" || exit
-    poetry addref "Musmusculus" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
+    poetry run python addref "Musmusculus" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
 fi
 
 echo "${result[@]}" | xargs -n 1 | grep -E "^PoetryRequirement$" >/dev/null
 if [ $? -eq 0 ]; then
     curl -sSL https://install.python-poetry.org | python3 -
-    poetry install
 fi
+
+echo "using $(which python)"
+poetry env use "$(which python)"
+python -m venv .venv
+poetry install
+cd "${install_dir}/celline" || exit
+poetry run python -m celline addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
+poetry run python -m celline addref "Musmusculus" "${install_dir}/genomes/refdata-gex-mm10-2020-A"
 
 echo "Successful to install"

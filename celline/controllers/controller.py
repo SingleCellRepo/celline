@@ -3,6 +3,7 @@ import asyncio
 from typing import List
 
 from celline.jobs.jobs import JobSystem
+from celline.ncbi.genome import Genome
 from celline.ncbi.srr import SRR
 from celline.plugins.collections.generic import ListC
 from celline.plugins.reflection.module import BindingFlags, Module
@@ -51,4 +52,18 @@ class CountController:
             max_nthread=nthread,
             cluster_server_name=cluster_server_name
         )
+        return
+
+
+class AddRefController:
+    def __init__(self, options: List[str]) -> None:
+        if len(options) < 2:
+            raise InvalidArgumentException(
+                "Please specify celline addref [species] [path]")
+        self.species: str = options[0]
+        self.path: str = options[1]
+        pass
+
+    def call(self) -> None:
+        Genome.add(self.species, self.path)
         return

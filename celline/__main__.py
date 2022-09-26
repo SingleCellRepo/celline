@@ -4,8 +4,8 @@ import sys
 from typing import Any, List
 
 from celline.controllers.argument import JobArgument, ThreadArgument
-from celline.controllers.controller import (AddController, CountController,
-                                            DumpController)
+from celline.controllers.controller import (AddController, AddRefController,
+                                            CountController, DumpController)
 from celline.ncbi.genome import Genome
 from celline.plugins.collections.generic import ListC
 from celline.plugins.reflection.activator import Activator
@@ -69,6 +69,8 @@ if __name__ == "__main__":
             nthread=th_arg.nthread,
             cluster_server_name=job_arg.cluster_server_name
         )
+    elif cmd == "addref":
+        AddRefController(options=options).call()
     # SRR.dump(
     #     jobsystem=JobSystem.default_bash,
     #     max_nthread=1,
