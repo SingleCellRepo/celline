@@ -12,6 +12,26 @@ realpath() {
     echo "$dir$base"
 }
 
+function write_alias() {
+    if [ "$SHELL" = "/usr/bin/bash" ] || [ "$SHELL" = "/bin/bash" ]; then
+        if grep "source ~/.sc_alias" ~/.bashrc >/dev/null; then
+            echo ">> alias skipped".
+        else
+            echo 'source ~/.sc_alias' >>~/.bashrc
+        fi
+    elif [ "$SHELL" = "/usr/bin/zsh" ] || [ "$SHELL" = "/bin/zsh" ]; then
+        if grep "source ~/.sc_alias" ~/.zshrc >/dev/null; then
+            echo ">> alias skipped".
+        else
+            echo 'source ~/.sc_alias' >>~/.zshrc
+        fi
+    else
+        echo "Unrecognized shell ($SHELL)."
+        echo "Please write 'source ~/.sc_alias' to your startup script."
+    fi
+}
+
+write_alias
 ## Target exec directory
 read -e -p "Installation target directory? " install_dir
 if [ -z "$install_dir" ]; then
@@ -34,10 +54,13 @@ source_loc=$(dirname "$(
 )")
 echo "Installing..."
 rsync -ah "${source_loc}" "${install_dir}" --exclude '__pycache__/' --exclude '.git/' --exclude 'test/' --exclude '.vscode/' --exclude '*.ipynb' --exclude '.mypy_cache/' --exclude 'README.md' --exclude 'tools/'
+
+echo "export PATH="\""$install_dir"/celline/bin:'$PATH"' >~/.sc_alias
+chmod +x "$install_dir/celline/bin/celline"
+chmod +x "$install_dir/celline/bin/scfastq-dump"
 ###############################
 
 ## Variables
-declare INSTALL_POETRY=true
 declare -a selection=()
 
 ## Ref genome installation
@@ -65,18 +88,16 @@ if [ $? -eq 0 ]; then
     tar -zxvf refdata-gex-GRCh38-2020-A.tar.gz
     rm refdata-gex-GRCh38-2020-A.tar.gz
     cd "${install_dir}/celline" || exit
-    poetry run python addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
 fi
 
 ### TODO Write mouse ref genome
 echo "${result[@]}" | xargs -n 1 | grep -E "^MouseReferenceGenome$" >/dev/null
 if [ $? -eq 0 ]; then
     cd "${install_dir}/genomes" || exit
-    wget https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2020-A.tar.gz -O "${install_dir}/genomes/refdata-gex-GRCh38-2020-A.tar.gz"
-    tar -zxvf refdata-gex-GRCh38-2020-A.tar.gz
-    rm refdata-gex-GRCh38-2020-A.tar.gz
+    wget https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-mm10-2020-A.tar.gz -O "${install_dir}/genomes/refdata-gex-mm10-2020-A.tar.gz"
+    tar -zxvf refdata-gex-mm10-2020-A.tar.gz
+    rm refdata-gex-mm10-2020-A.tar.gz
     cd "${install_dir}/celline" || exit
-    poetry run python addref "Musmusculus" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
 fi
 
 echo "${result[@]}" | xargs -n 1 | grep -E "^PoetryRequirement$" >/dev/null
@@ -84,12 +105,23 @@ if [ $? -eq 0 ]; then
     curl -sSL https://install.python-poetry.org | python3 -
 fi
 
+echo "${result[@]}" | xargs -n 1 | grep -E "^SRAtoolkit$" >/dev/null
+if [ $? -eq 0 ]; then
+    mkdir -p "${sratoolpath}"
+    cd ${sratoolpath} || exit
+    wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.0/sratoolkit.3.0.0-centos_linux64.tar.gz
+    tar -zxvf sratoolkit.3.0.0-centos_linux64.tar.gz
+    rm sratoolkit.3.0.0-centos_linux64.tar.gz
+    echo "export PATH="\""${sratoolpath}"/sratoolkit.3.0.0-centos_linux64/bin:'$PATH"' >>~/.sc_alias
+fi
+
+cd "${install_dir}/celline" || exit
 echo "using $(which python)"
 poetry env use "$(which python)"
 python -m venv .venv
 poetry install
 cd "${install_dir}/celline" || exit
-poetry run python static addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
-poetry run python static addref "Musmusculus" "${install_dir}/genomes/refdata-gex-mm10-2020-A"
+poetry run python celline/initializer/initialize.py static addref "${install_dir}/celline" "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
+poetry run python celline/initializer/initialize.py static addref "${install_dir}/celline" "Musmusculus" "${install_dir}/genomes/refdata-gex-mm10-2020-A"
 
 echo "Successful to install"

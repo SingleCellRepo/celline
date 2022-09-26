@@ -8,6 +8,7 @@ from celline.ncbi.srr import SRR
 from celline.plugins.collections.generic import ListC
 from celline.plugins.reflection.module import BindingFlags, Module
 from celline.plugins.reflection.type import typeof
+from celline.utils.config import Setting
 from celline.utils.exceptions import InvalidArgumentException
 from celline.utils.typing import NullableString
 
@@ -66,4 +67,13 @@ class AddRefController:
 
     def call(self) -> None:
         Genome.add(self.species, self.path)
+        return
+
+
+class InitializeController:
+    def __init__(self) -> None:
+        pass
+
+    def call(self) -> None:
+        Setting.initialize()
         return

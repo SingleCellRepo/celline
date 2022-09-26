@@ -5,7 +5,8 @@ from typing import Any, List
 
 from celline.controllers.argument import JobArgument, ThreadArgument
 from celline.controllers.controller import (AddController, AddRefController,
-                                            CountController, DumpController)
+                                            CountController, DumpController,
+                                            InitializeController)
 from celline.ncbi.genome import Genome
 from celline.plugins.collections.generic import ListC
 from celline.plugins.reflection.activator import Activator
@@ -71,6 +72,8 @@ if __name__ == "__main__":
         )
     elif cmd == "addref":
         AddRefController(options=options).call()
+    elif cmd == "init":
+        InitializeController().call()
     # SRR.dump(
     #     jobsystem=JobSystem.default_bash,
     #     max_nthread=1,
