@@ -3,17 +3,21 @@ from typing import Any, Dict
 
 import toml  # type: ignore
 
+from celline.utils.typing import NullableString
+
 
 class Config:
     EXEC_ROOT: str
     PROJ_ROOT: str
 
     @staticmethod
-    def initialize(exec_root_path: str, proj_root_path: str):
+    def initialize(exec_root_path: str, proj_root_path: NullableString):
+        Config.EXEC_ROOT = exec_root_path
+        if proj_root_path is None:
+            return
         if not os.path.isfile(f"{proj_root_path}/setting.toml"):
             raise FileNotFoundError(
                 "Could not find setting.toml. Please create or initialize your project.")
-        Config.EXEC_ROOT = exec_root_path
         Config.PROJ_ROOT = proj_root_path
 
 

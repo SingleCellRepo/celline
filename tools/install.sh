@@ -89,7 +89,7 @@ poetry env use "$(which python)"
 python -m venv .venv
 poetry install
 cd "${install_dir}/celline" || exit
-poetry run python -m celline addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
-poetry run python -m celline addref "Musmusculus" "${install_dir}/genomes/refdata-gex-mm10-2020-A"
+poetry run python static addref "Homosapiens" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
+poetry run python static addref "Musmusculus" "${install_dir}/genomes/refdata-gex-mm10-2020-A"
 
 echo "Successful to install"
