@@ -8,3 +8,15 @@ class InvalidDataFrameHeaderException(Exception):
 
 class InvalidServerNameException(Exception):
     pass
+
+
+class InvalidJobSystemException(Exception):
+    pass
+
+
+class InvalidArgumentException(Exception):
+    pass
+
+
+class InvalidJobException(Exception):
+    pass

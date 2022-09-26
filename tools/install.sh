@@ -51,21 +51,12 @@ fi
 if ! [[ -d "${install_dir}/SRA" ]]; then
     selection+=("SRAtoolkit")
 fi
-if hash poetry 2>/dev/null; then
-    INSTALL_POETRY=false
-fi
-
+selection+=("PoetryRequirement")
 bash "${source_loc}/tools/multi_selection.sh" "${selection[*]}"
 result=$(cat "./sel_res.txt")
 rm "./sel_res.txt"
 
-if [ $INSTALL_POETRY ]; then
-    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-fi
-
 cd "${install_dir}/celline" || exit
-
-poetry install
 
 echo "${result[@]}" | xargs -n 1 | grep -E "^HumanReferenceGenome$" >/dev/null
 if [ $? -eq 0 ]; then
@@ -87,3 +78,11 @@ if [ $? -eq 0 ]; then
     cd "${install_dir}/celline" || exit
     poetry addref "Musmusculus" "${install_dir}/genomes/refdata-gex-GRCh38-2020-A"
 fi
+
+echo "${result[@]}" | xargs -n 1 | grep -E "^PoetryRequirement$" >/dev/null
+if [ $? -eq 0 ]; then
+    curl -sSL https://install.python-poetry.org | python3 -
+    poetry install
+fi
+
+echo "Successful to install"
