@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import asyncio
+import os
 from typing import List
 
 from celline.jobs.jobs import JobSystem
@@ -8,7 +9,7 @@ from celline.ncbi.srr import SRR
 from celline.plugins.collections.generic import ListC
 from celline.plugins.reflection.module import BindingFlags, Module
 from celline.plugins.reflection.type import typeof
-from celline.utils.config import Setting
+from celline.utils.config import Config, Setting
 from celline.utils.exceptions import InvalidArgumentException
 from celline.utils.typing import NullableString
 
@@ -20,13 +21,16 @@ class AddController:
         if len(options) < 1:
             raise InvalidArgumentException("Please specify run id")
         self.run_id = options[0]
-        if not (self.run_id.startswith("SRR") | self.run_id.startswith("GSM")):
+        if not (self.run_id.startswith("SRR") | self.run_id.startswith("GSM") | os.path.isfile(self.run_id)):
             raise InvalidArgumentException("Run ID should SRR ID or GSM ID.")
         pass
 
     def call(self) -> None:
-        asyncio.get_event_loop().run_until_complete(
-            SRR.add(self.run_id))
+        if os.path.isfile(self.run_id):
+            asyncio.get_event_loop().run_until_complete(SRR.add_range(self.run_id))
+        else:
+            asyncio.get_event_loop().run_until_complete(
+                SRR.add(self.run_id))
 
 
 class DumpController:
@@ -74,6 +78,10 @@ class InitializeController:
     def __init__(self) -> None:
         pass
 
-    def call(self) -> None:
-        Setting.initialize()
+    def call(self, pwd: str) -> None:
+        Config.PROJ_ROOT = pwd
+        Setting.name = input("Project name?: ")
+        Setting.version = 0.1
+        Setting.wait_time = 4
+        Setting.flush()
         return

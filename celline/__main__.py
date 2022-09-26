@@ -41,6 +41,9 @@ class ControllerManager:
 if __name__ == "__main__":
     cmd = sys.argv[3]
     options = sys.argv[4:]
+    if cmd == "init":
+        InitializeController().call(pwd=sys.argv[2])
+        quit()
 # TODO: Future work, generalize these codes with abstract
     Config.initialize(exec_root_path=sys.argv[1], proj_root_path=sys.argv[2])
     Setting.initialize()
@@ -72,8 +75,6 @@ if __name__ == "__main__":
         )
     elif cmd == "addref":
         AddRefController(options=options).call()
-    elif cmd == "init":
-        InitializeController().call()
     # SRR.dump(
     #     jobsystem=JobSystem.default_bash,
     #     max_nthread=1,

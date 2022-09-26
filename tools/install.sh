@@ -114,7 +114,7 @@ if [ $? -eq 0 ]; then
     rm sratoolkit.3.0.0-centos_linux64.tar.gz
     echo "export PATH="\""${sratoolpath}"/sratoolkit.3.0.0-centos_linux64/bin:'$PATH"' >>~/.sc_alias
 fi
-
+echo "export PATH="\""${sratoolpath}"/sratoolkit.3.0.0-centos_linux64/bin:'$PATH"' >>~/.sc_alias
 cd "${install_dir}/celline" || exit
 echo "using $(which python)"
 poetry env use "$(which python)"
