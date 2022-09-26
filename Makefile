@@ -1,2 +1,2 @@
 install:
-	echo "Test"
+	@bash tools/install.sh

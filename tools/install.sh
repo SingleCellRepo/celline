@@ -32,7 +32,7 @@ source_loc=$(dirname "$(
     cd "$(dirname "$0")" || exit
     pwd
 )")
-echo "Instaling..."
+echo "Installing..."
 rsync -ah "${source_loc}" "${install_dir}" --exclude '__pycache__/' --exclude '.git/' --exclude 'test/' --exclude '.vscode/' --exclude '*.ipynb' --exclude '.mypy_cache/' --exclude 'README.md' --exclude 'tools/'
 ###############################
 

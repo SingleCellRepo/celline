@@ -67,12 +67,12 @@ class Directory:
         target = Directory.runs()
         target = target[target["dumped_filename"] == dumped_filename].iloc[0]
         if type == DirectoryType.dumped_file:
-            return f'{Config.PROJ_ROOT}/resources/{target["dumped_filepath"].iloc[0]}'
+            return f'{Config.PROJ_ROOT}/resources/{target["dumped_filepath"]}'
         elif type == DirectoryType.count:
-            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/1_count'
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"]}/1_count'
         elif type == DirectoryType.counted:
-            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/1_count/{target["gsm_id"].iloc[0]}/out'
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"]}/1_count/{target["gsm_id"]}/out'
         elif type == DirectoryType.seurat:
-            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/2_seurat/{target["gsm_id"].iloc[0]}'
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"]}/2_seurat/{target["gsm_id"]}'
         elif type == DirectoryType.seurat_integrated:
-            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"].iloc[0]}/2_seurat/__integrated'
+            return f'{Config.PROJ_ROOT}/resources/{target["gse_id"]}/2_seurat/__integrated'

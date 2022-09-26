@@ -6,8 +6,12 @@ from celline.utils.typing import NullableString
 
 
 class SampleRunner:
-    def __init__(self, options: List[str], argparser: ArgumentParser) -> None:
+    def __init__(self, argparser: ArgumentParser) -> None:
         argparser.add_argument("-s", "--samplename", type=str)
-        self.default_sample_name: NullableString = argparser.parse_args(
-            options).samplename
+        self.argparser = argparser
         pass
+
+    def analyze(self, options: List[str]):
+        self.default_sample_name: NullableString = self.argparser.parse_args(
+            options).samplename
+        return

@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 from operator import index
 import os
 import re
@@ -553,10 +554,14 @@ class SRR:
         runtable = runtable[~runtable["fileexists"]]
         del runtable["fileexists"]
         run_ids: List[str] = runtable["run_id"].unique().tolist()
+        if jobsystem == JobSystem.default_bash:
+            print(
+                "[Warning] Only 1 thread will be used because you use default bash system.")
+            max_nthread = 1
         if len(run_ids) < max_nthread:
             print("[WARNING] The number of threads was suppressed due to the number of threads exceeding the required number.")
             max_nthread = len(run_ids)
-        eachsize = len(run_ids)//max_nthread
+        eachsize = math.ceil(len(run_ids)/max_nthread)
         for threadnum in range(max_nthread):
             write_target_sh = []
             log_location = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/logs"
@@ -630,10 +635,8 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
         Directory.initialize()
         nowtime = str(time())
         os.makedirs(
-            f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
+            f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}", exist_ok=True)
         runtable = Directory.runs()
-
-        # dumpしたファイルはあるが、まだcountしていないデータのみを対象とする
         runtable["run"] = runtable.apply(
             lambda ser: os.path.isfile(
                 Directory.get_filepath(

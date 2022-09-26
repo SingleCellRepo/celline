@@ -6,8 +6,12 @@ from celline.utils.typing import NullableString
 
 
 class ThreadRunner:
-    def __init__(self, options: List[str], argparser: ArgumentParser) -> None:
+    def __init__(self, argparser: ArgumentParser) -> None:
         argparser.add_argument("-n", "--nthread", type=int)
-        self.nthread: int = argparser.parse_args(
-            options).nthread
+        self.argparser = argparser
         pass
+
+    def analyze(self, options: List[str]):
+        self.nthread: int = self.argparser.parse_args(
+            options).nthread
+        return

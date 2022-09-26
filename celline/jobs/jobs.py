@@ -28,6 +28,6 @@ class Jobs:
 
 
 class JobSystem(Enum):
-    default_bash = 1
-    nohup = 2
-    PBS = 3
+    default_bash = "default_bash"
+    nohup = "nohup"
+    PBS = "PBS"

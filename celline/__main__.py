@@ -3,23 +3,16 @@ import asyncio
 import sys
 from typing import Any, List
 
-from celline.controllers.add import AddController
-from celline.controllers.dump import DumpController
-from celline.controllers.middleware.job_runner import JobRunner
-from celline.controllers.middleware.sample_runner import SampleRunner
-from celline.controllers.middleware.thread_runner import ThreadRunner
-from celline.jobs.jobs import Jobs, JobSystem  # type:ignore
+from celline.controllers.argument import JobArgument, ThreadArgument
+from celline.controllers.controller import (AddController, CountController,
+                                            DumpController)
 from celline.ncbi.genome import Genome
-from celline.ncbi.srr import SRR
 from celline.plugins.collections.generic import ListC
 from celline.plugins.reflection.activator import Activator
 from celline.plugins.reflection.module import Module
 from celline.plugins.reflection.type import (BindingFlags, DictionaryC,
                                              KeyValuePair, TypeC, typeof)
-from celline.test.test import Test
 from celline.utils.config import Config, Setting
-from celline.utils.exceptions import InvalidArgumentException
-from celline.utils.help import Help
 
 
 class ControllerManager:
@@ -48,28 +41,33 @@ if __name__ == "__main__":
     cmd = sys.argv[3]
     options = sys.argv[4:]
 # TODO: Future work, generalize these codes with abstract
-    # Config.initialize(exec_rot_path=sys.argv[1], proj_root_path=sys.argv[2])
-    # Setting.initialize()
-    # Genome.initialize()
-    # ControllerManager.initialize()
+    Config.initialize(exec_root_path=sys.argv[1], proj_root_path=sys.argv[2])
+    Setting.initialize()
+    Genome.initialize()
     # if not ControllerManager.commands.Contains(cmd):
     #     raise InvalidArgumentException(f"Could not found {cmd}")
     # target_command = (
     #     ControllerManager.commands.Where(lambda t_obj: t_obj.Key == cmd).First().Value
     # )
     # target_command.Key.GetMethod("call").Invoke(target_command.Value, options)o
-    argparser = argparse.ArgumentParser(description='argument')
-    job_runner = JobRunner(options, argparser)
-    default_sample_runner = SampleRunner(options, argparser)
-    thread_runner = ThreadRunner(options, argparser)
+
+    # Analyze
+    job_arg = JobArgument(options=options)
+    th_arg = ThreadArgument(options=options)
     if cmd == "add":
-        AddController(options=options).call(
-            default_sample_runner.default_sample_name)
+        AddController(options=options).call()
     elif cmd == "dump":
         DumpController().call(
-            jobsystem=job_runner.jobsystem,
-            nthread=thread_runner.nthread,
-            cluster_server_name=job_runner.servername
+            jobsystem=job_arg.jobsystem,
+            nthread=th_arg.nthread,
+            cluster_server_name=job_arg.cluster_server_name
+        )
+    elif cmd == "count":
+        CountController().call(
+            jobsystem=job_arg.jobsystem,
+            each_nthread=th_arg.each_nthread,
+            nthread=th_arg.nthread,
+            cluster_server_name=job_arg.cluster_server_name
         )
     # SRR.dump(
     #     jobsystem=JobSystem.default_bash,
