@@ -11,14 +11,28 @@ class Help:
     """
 
     __HELP_PATH = f"{sys.path[0]}/docs/__help.yaml"
-    __HELP_CONTENT: Dict[str, Any] = {}
 
-    @staticmethod
-    def __get_help_content() -> Dict[str, Any]:
+    def __init__(self) -> None:
         with open(Help.__HELP_PATH, mode="r") as f:
-            Help.__HELP_CONTENT = yaml.load(f, Loader=Loader)
-        return Help.__HELP_CONTENT
+            self.contents: Dict[str, Dict[str, Any]
+                                ] = yaml.load(f, Loader=Loader)
+        pass
 
-    @staticmethod
-    def show():
-        print(Help.__get_help_content())
+    def __build(self, command: str) -> str:
+        target = self.contents[command]
+        cmd = f"""
+celline {command}\n  """
+        args = target["args"]
+        for arg in args:
+            if args[arg]["optional"]:
+                cmd += f"--{arg}"
+            else:
+                cmd += f"{arg}"
+            cmd += f"\n    : {args[arg]['description']}"
+        return cmd
+
+    def call(self, command: str):
+        if command not in self.contents:
+            return "\n".join([self.__build(cmd) for cmd in self.contents.keys()])
+        else:
+            return self.__build(command)

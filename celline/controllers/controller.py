@@ -1,16 +1,16 @@
-from argparse import ArgumentParser
 import asyncio
 import os
-from typing import List
+from typing import Any, Dict, List, Union
+
+import yaml
+from yaml import Loader
 
 from celline.jobs.jobs import JobSystem
 from celline.ncbi.genome import Genome
 from celline.ncbi.srr import SRR
-from celline.plugins.collections.generic import ListC
-from celline.plugins.reflection.module import BindingFlags, Module
-from celline.plugins.reflection.type import typeof
 from celline.utils.config import Config, Setting
 from celline.utils.exceptions import InvalidArgumentException
+from celline.utils.help import Help
 from celline.utils.typing import NullableString
 
 
@@ -22,7 +22,9 @@ class AddController:
             raise InvalidArgumentException("Please specify run id")
         self.run_id = options[0]
         if not (self.run_id.startswith("SRR") | self.run_id.startswith("GSM") | os.path.isfile(self.run_id)):
-            raise InvalidArgumentException("Run ID should SRR ID or GSM ID.")
+            print("Run ID should SRR ID or GSM ID.\nUsage:")
+            HelpController.call("add")
+            quit()
         pass
 
     def call(self) -> None:
@@ -84,4 +86,15 @@ class InitializeController:
         Setting.version = 0.1
         Setting.wait_time = 4
         Setting.flush()
+        return
+
+
+class HelpController:
+    helpobj: Union[Help, None] = None
+
+    @staticmethod
+    def call(command: str):
+        if HelpController.helpobj is None:
+            HelpController.helpobj = Help()
+        print(HelpController.helpobj.call(command))
         return

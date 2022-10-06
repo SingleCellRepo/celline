@@ -3,6 +3,7 @@ import math
 from operator import index
 import os
 import re
+import shutil
 import subprocess
 from time import time
 from typing import Dict, List
@@ -15,6 +16,7 @@ from tqdm import tqdm  # type: ignore
 
 from celline.jobs.jobs import Jobs, JobSystem  # type: ignore
 from celline.ncbi.genome import Genome
+from celline.ncbi.resolver import RuntableResolver
 from celline.utils.config import Config, Setting
 from celline.utils.directory import Directory, DirectoryType
 from celline.utils.exceptions import (InvalidDataFrameHeaderException,
@@ -42,7 +44,6 @@ class _SRR:
     gse_id: str = ""
     egress: str = "-"
     filetype: str = ""
-    sizeGB: float = 0
     spieces: str = ""
     location: str = ""
 
@@ -59,7 +60,11 @@ class SRR:
 
     @staticmethod
     def get_runtable():
-        return pd.read_csv(f"{Config.PROJ_ROOT}/runs.tsv", sep="\t")
+        file = f"{Config.PROJ_ROOT}/runs.tsv"
+        if os.path.isfile(file):
+            return pd.read_csv(file, sep="\t")
+        else:
+            return None
 
     @staticmethod
     async def __fetch(run_id: str, visualize=True):
@@ -103,8 +108,9 @@ class SRR:
 
         def get_headers() -> List[str]:
             headers = response.html.find(
+                # type: ignore
                 "#ph-run-browser-data-access > div:nth-child(2) > table > thead > tr"
-            )[0].text.split(  # type: ignore
+            )[0].text.split(
                 "\n"
             )
             return headers[2: len(headers)]
@@ -194,7 +200,6 @@ class SRR:
         runtable = (
             runtable[runtable["Location"] == location]
             .reset_index()
-            .merge(get_sizeGB(), left_index=True, right_index=True)
         )
         del runtable["index"]
 
@@ -212,15 +217,16 @@ class SRR:
 
         def build_SRR(series: Series, run_id: str, use_interactive: bool) -> _SRR:
             def get_sampleid(cloud_file_name: str, filetype: str):
-                search_result = re.search("_S", cloud_file_name)
-                if filetype == "fastq":
-                    if search_result is not None:
-                        sampleid = cloud_file_name[search_result.span()[1]]
-                    else:
-                        sampleid = "1"
-                    return sampleid
-                else:
-                    return None
+                # search_result = re.search("_S", cloud_file_name)
+                # if filetype == "fastq":
+                #     if search_result is not None:
+                #         sampleid = cloud_file_name[search_result.span()[1]]
+                #     else:
+                #         sampleid = "1"
+                #     return sampleid
+                # else:
+                #     return None
+                return "1"
 
             def get_laneid(cloud_file_name: str, filetype: str, interactive: bool):
                 if filetype == "fastq":
@@ -230,17 +236,9 @@ class SRR:
                         laneid = cloud_file_name[index: index + 3]
                         return laneid
                     else:
-                        if interactive:
-                            while True:
-                                laneid = input(
-                                    f"Could not detect laneID automatically\ndetected file name: {cloud_file_name}\nlaneID? L[001-]: "
-                                )
-                                if len(laneid) == 3:
-                                    break
-                                else:
-                                    print("please designate laneID like 001")
-                        else:
-                            return None
+                        print(
+                            f"\n   [ERROR] Could not detect laneID automatically.\n   (detected file name: {cloud_file_name})"
+                        )
                 else:
                     return None
 
@@ -276,7 +274,10 @@ class SRR:
                     return None
 
             def get_raw_filename(
-                cloud_file_path: str, read_type: NullableString, run_id: str, filetype: str
+                cloud_file_path: str,
+                read_type: NullableString,
+                run_id: str,
+                filetype: str,
             ):
                 raw_fname = cloud_file_path.split("/")[-1]
                 if filetype == "fastq":
@@ -308,12 +309,22 @@ class SRR:
                     return f"{gsm_id}.bam"
                 else:
                     return f"{gsm_id}.unknown"
-
             srr = _SRR(run_id)
-            srr.sample_name = sample_name
-            srr.sizeGB = float(series["size"])
             srr.gsm_id = str(series["GSM"])
             srr.gse_id = str(series["GSE"])
+            current = SRR.get_runtable()
+            if current is not None:
+                exists_samplename = current[current["gse_id"]
+                                            == srr.gse_id]["sample_name"].tolist()
+                if len(exists_samplename) > 0:
+                    if sample_name != exists_samplename[0]:
+                        print(
+                            f"\n   [Error] Duplicated name on same GSE ID is not allowed.\n   Old: {exists_samplename[0]} <-> New: {sample_name}")
+                        if thread_loader is not None:
+                            thread_loader.stop_loading(
+                                status="Aborted building", failed=True)
+                        quit()
+            srr.sample_name = sample_name
             srr.spieces = str(series["spieces"])
             # Assign parametres
             srr.cloud_filepath = str(series["Name"])
@@ -347,10 +358,10 @@ class SRR:
             )
             srr.replicate = repid
             if srr.filetype == "fastq":
-                srr.dumped_filepath = f"{srr.gse_id}/0_dumped/{srr.gsm_id}/fastqs/rep{repid}/{srr.dumped_filename}"
+                srr.dumped_filepath = f"{srr.sample_name}/0_dumped/{srr.gsm_id}/fastqs/rep{repid}/{srr.dumped_filename}"
             elif srr.filetype == "bam":
                 srr.dumped_filepath = (
-                    f"{srr.gse_id}/0_dumped/{srr.gsm_id}/bams/{srr.dumped_filename}"
+                    f"{srr.sample_name}/0_dumped/{srr.gsm_id}/bams/{srr.dumped_filename}"
                 )
             else:
                 raise NCBIException("Unrecognized filetype")
@@ -422,6 +433,7 @@ class SRR:
         default_sample_name: NullableString = None,
         use_interactive=True,
         visualize=True,
+        update=False
     ):
         """
         Auto-fetch and write the given run_id information. fastq file or bam will be added.
@@ -437,6 +449,20 @@ class SRR:
          visualize: bool = True
              Visualize terminal interface?
         """
+        runtable = SRR.get_runtable()
+        if runtable is not None:
+            if RuntableResolver.has_error(runtable, run_id):
+                print("Error detected")
+                update = True
+            if not update:
+                if run_id.startswith("SRR"):
+                    if run_id in runtable["run_id"].tolist():
+                        print(f"[INFO] {run_id} is already exist. Ignore.")
+                        return
+                elif run_id.startswith("GSM"):
+                    if run_id in runtable["gsm_id"].tolist():
+                        print(f"[INFO] {run_id} is already exist. Ignore.")
+                        return
         if default_sample_name is None:
             sample_name = SRR.get_sample_name(visualize)
         else:
@@ -460,23 +486,33 @@ class SRR:
                 visualize=visualize,
             )
         elif run_id.startswith("GSM"):
-            ids = SRR.SRADB.gsm_to_srr(run_id)["run_accession"].tolist()
+            try:
+                ids = SRR.SRADB.gsm_to_srr(run_id)["run_accession"].tolist()
+            except:
+                print(
+                    f"[WARNING] Fetching process encounted error, ignore.: {run_id}")
+                ids = None
             if thread_loader is not None:
                 thread_loader.stop_loading(status="Finished fetching GSM.")
-            cnt = 0
-            for target_id in ids:
-                await SRR.__add(
-                    run_id=target_id,
-                    default_sample_name=sample_name,
-                    repid=cnt,
-                    use_interactive=use_interactive,
-                    visualize=visualize,
-                )
-                cnt += 1
+            if ids is not None:
+                cnt = 0
+                for target_id in ids:
+                    await SRR.__add(
+                        run_id=target_id,
+                        default_sample_name=sample_name,
+                        repid=cnt,
+                        use_interactive=use_interactive,
+                        visualize=visualize,
+                    )
+                    cnt += 1
         else:
             if thread_loader is not None:
                 thread_loader.stop_loading(status="Failed.")
-            raise NCBIException(f"Could not detect accession type of {run_id}")
+            print(f"[ERROR] Could not detect accession type of {run_id}")
+        if visualize:
+            runtable = SRR.get_runtable()
+            if runtable is not None:
+                RuntableResolver.validate(runtable)
 
     @staticmethod
     async def add_range(run_list_path: str):
@@ -497,14 +533,14 @@ class SRR:
                 f"Could not find SRR list in your project. Please write run list to {run_list_path}.\n(We prepared SRR_list template :))"
             )
         run_list = pd.read_csv(run_list_path, sep="\t")
-        if not run_list.columns.tolist() in COLUMS:
+        if not run_list.columns.tolist() == COLUMS:
             raise InvalidDataFrameHeaderException(
                 f"Header must contains {COLUMS}")
         runs = pd.read_csv(f"{Config.PROJ_ROOT}/runs.tsv",
                            sep="\t", index_col=0)
-        all_srr = runs["runid"].unique().tolist()
-        run_list = run_list[~run_list["runid"].isin(all_srr)].reset_index()
-        all_len = len(run_list["runid"])
+        all_srr = runs["run_id"].unique().tolist()
+        run_list = run_list[~run_list["SRR_ID"].isin(all_srr)].reset_index()
+        all_len = len(run_list["SRR_ID"])
 
         if all_len != 0:
             bar = tqdm(total=all_len)
@@ -520,9 +556,16 @@ class SRR:
                 )
                 bar.update(1)
             bar.clear()
+        runtable = SRR.get_runtable()
+        if runtable is not None:
+            RuntableResolver.validate(runtable)
 
     @staticmethod
-    def dump(jobsystem: JobSystem, max_nthread: int, cluster_server_name: NullableString = None):
+    def dump(
+        jobsystem: JobSystem,
+        max_nthread: int,
+        cluster_server_name: NullableString = None,
+    ):
         """
         Download all sequence files that have not yet downloaded in the project via the specified job system.
 
@@ -541,27 +584,31 @@ class SRR:
         os.makedirs(
             f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
         runtable = SRR.get_runtable()
-        runtable["dumped_filepath"] = runtable\
-            .apply(
-                lambda ser: f"{Config.PROJ_ROOT}/resources/{ser['dumped_filepath']}",
-                axis=1
+        if runtable is None:
+            print("[ERROR] Could not find run.tsv in your project.")
+            quit()
+        RuntableResolver.validate(runtable)
+
+        runtable["dumped_filepath"] = runtable.apply(
+            lambda ser: f"{Config.PROJ_ROOT}/resources/{ser['dumped_filepath']}", axis=1
         )
-        runtable["fileexists"] = runtable\
-            .apply(
-                lambda ser: os.path.isfile(str(ser['dumped_filepath'])),
-                axis=1
+        runtable["fileexists"] = runtable.apply(
+            lambda ser: os.path.isfile(str(ser["dumped_filepath"])), axis=1
         )
         runtable = runtable[~runtable["fileexists"]]
         del runtable["fileexists"]
         run_ids: List[str] = runtable["run_id"].unique().tolist()
         if jobsystem == JobSystem.default_bash:
             print(
-                "[Warning] Only 1 thread will be used because you use default bash system.")
+                "[Warning] Only 1 thread will be used because you use default bash system."
+            )
             max_nthread = 1
         if len(run_ids) < max_nthread:
-            print("[WARNING] The number of threads was suppressed due to the number of threads exceeding the required number.")
+            print(
+                "[WARNING] The number of threads was suppressed due to the number of threads exceeding the required number."
+            )
             max_nthread = len(run_ids)
-        eachsize = math.ceil(len(run_ids)/max_nthread)
+        eachsize = math.ceil(len(run_ids) / max_nthread)
         for threadnum in range(max_nthread):
             write_target_sh = []
             log_location = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/logs"
@@ -569,28 +616,29 @@ class SRR:
             if jobsystem == JobSystem.PBS:
                 if cluster_server_name is None:
                     raise InvalidServerNameException(
-                        "Please specify cluster server name (like yuri) to use PBS job system.")
+                        "Please specify cluster server name (like yuri) to use PBS job system."
+                    )
                 write_target_sh = Jobs.build(
                     template_path=f"{Config.EXEC_ROOT}/templates/controllers/PBS.csh",
                     replace_params={
                         "cluster": cluster_server_name,
                         "log": f"{log_location}/dump_cluster_{threadnum}.log",
                         "jobname": "dump",
-                        "nthread": 1
-                    }
+                        "nthread": 1,
+                    },
                 )
             if threadnum == max_nthread - 1:
-                target_run = run_ids[eachsize *
-                                     threadnum: len(run_ids)]
+                target_run = run_ids[eachsize * threadnum: len(run_ids)]
             else:
                 target_run = run_ids[eachsize *
-                                     threadnum:eachsize * (threadnum + 1)]
+                                     threadnum: eachsize * (threadnum + 1)]
             target_data = runtable[runtable["run_id"].isin(
                 target_run)].reset_index()
             for run_id in target_run:
                 targetcol = target_data[target_data["run_id"] == run_id]
                 rootdir = "/".join(
-                    targetcol["dumped_filepath"].iloc[0].split("/")[0:-1])
+                    targetcol["dumped_filepath"].iloc[0].split("/")[0:-1]
+                )
                 if targetcol["filetype"].iloc[0] == "bam":
                     write_target_sh.append(
                         f"""
@@ -606,58 +654,86 @@ cd "{rootdir}" || exit
 scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
 """
                     )
-                    for target_rawfilename in targetcol["raw_filename"].unique().tolist():
-                        moved_name = targetcol[targetcol["raw_filename"] ==
-                                               target_rawfilename]["dumped_filename"].tolist()[0]
+                    for target_rawfilename in (
+                        targetcol["raw_filename"].unique().tolist()
+                    ):
+                        moved_name = targetcol[
+                            targetcol["raw_filename"] == target_rawfilename
+                        ]["dumped_filename"].tolist()[0]
                         write_target_sh.append(
-                            f'mv {target_rawfilename} {moved_name}\n')
+                            f"mv {target_rawfilename} {moved_name}\n"
+                        )
             srcfile = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/dump_cluster_{threadnum}.sh"
             with open(srcfile, mode="w") as f:
                 f.writelines(write_target_sh)
             if jobsystem == JobSystem.default_bash:
-                subprocess.run(
-                    f"bash {srcfile}",
-                    shell=True
-                )
+                subprocess.run(f"bash {srcfile}", shell=True)
             elif jobsystem == JobSystem.nohup:
                 subprocess.run(
                     f"nohup bash {srcfile} > {log_location}/dump_cluster_{threadnum}.log &",
-                    shell=True
+                    shell=True,
                 )
             elif jobsystem == JobSystem.PBS:
-                subprocess.run(
-                    f"qsub {srcfile}",
-                    shell=True
-                )
+                subprocess.run(f"qsub {srcfile}", shell=True)
 
     @staticmethod
-    def count(jobsystem: JobSystem, each_nthread: int, max_nthread: int, cluster_server_name: NullableString = None):
+    def count(
+        jobsystem: JobSystem,
+        each_nthread: int,
+        max_nthread: int,
+        cluster_server_name: NullableString = None,
+    ):
         Directory.initialize()
         nowtime = str(time())
         os.makedirs(
             f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}", exist_ok=True)
-        runtable = Directory.runs()
+        runtable = SRR.get_runtable()
+        if runtable is None:
+            print("[ERROR] Could not find run table in your project.")
+            quit()
+        RuntableResolver.validate(runtable)
         runtable["run"] = runtable.apply(
             lambda ser: os.path.isfile(
                 Directory.get_filepath(
                     ser["dumped_filename"], type=DirectoryType.dumped_file
                 )
-            ) & os.path.isdir(
+            )
+            & os.path.isdir(
                 Directory.get_filepath(
                     ser["dumped_filename"], type=DirectoryType.counted
                 )
-            ) == False,
-            axis=1
+            )
+            == False,
+            axis=1,
         )
         runtable = runtable[runtable["run"]]
         del runtable["run"]
+
+        def initialize_countdir(ser: Series):
+            directory = f'{Directory.get_filepath(ser["dumped_filename"], DirectoryType.count)}/{ser["gsm_id"]}'
+            if os.path.isdir(directory):
+                if not os.path.isdir(f"{directory}/out"):
+                    print(
+                        "[WARNING] There is an abnormally terminated Cellranger output. Delete these incomplete files."
+                    )
+                    shutil.rmtree(directory, ignore_errors=True)
+                return True
+            return False
+
+        runtable["counted_directory"] = runtable.apply(
+            lambda ser: initialize_countdir(ser),
+            axis=1,
+        )
+        runtable = runtable[~runtable["counted_directory"]]
         ############################################
         total_size = runtable.index.size
-        pararell_num = (max_nthread//each_nthread)
-        if total_size*each_nthread < max_nthread:
-            max_nthread = total_size*each_nthread
-        eachsize = total_size//pararell_num
-
+        pararell_num = max_nthread // each_nthread
+        if total_size * each_nthread < max_nthread:
+            max_nthread = total_size * each_nthread
+        eachsize = total_size // pararell_num
+        print(
+            f"Compute {pararell_num} jobs in parallel, using a total of {max_nthread} threads. ({each_nthread} threads are allocated for each job)"
+        )
         for threadnum in range(pararell_num):
             write_target_sh = []
             log_location = f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}/logs"
@@ -665,27 +741,31 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
             if jobsystem == JobSystem.PBS:
                 if cluster_server_name is None:
                     raise InvalidServerNameException(
-                        "Please specify cluster server name (like yuri) to use PBS job system.")
+                        "Please specify cluster server name (like yuri) to use PBS job system."
+                    )
                 write_target_sh = Jobs.build(
                     template_path=f"{Config.EXEC_ROOT}/templates/controllers/PBS.csh",
                     replace_params={
                         "cluster": cluster_server_name,
                         "log": f"{log_location}/count_cluster_{threadnum}.log",
                         "jobname": "count",
-                        "nthread": each_nthread
-                    }
+                        "nthread": each_nthread,
+                    },
                 )
             if threadnum == max_nthread - 1:
-                target_data = runtable[eachsize *
-                                       threadnum:runtable.index.size].reset_index()
+                target_data = runtable[
+                    eachsize * threadnum: runtable.index.size
+                ].reset_index()
             else:
-                target_data = runtable[eachsize *
-                                       threadnum:eachsize * (threadnum + 1)].reset_index()
+                target_data = runtable[
+                    eachsize * threadnum: eachsize * (threadnum + 1)
+                ].reset_index()
             for run_id in target_data["gsm_id"].unique().tolist():
                 targetcol = target_data[target_data["gsm_id"] == run_id]
                 rootdir = Directory.get_filepath(
-                    targetcol["dumped_filename"].iloc[0], DirectoryType.count)
-                raw_dir = f'{Config.PROJ_ROOT}/{targetcol["gse_id"].iloc[0]}/0_dumped/{targetcol["gsm_id"].iloc[0]}'
+                    targetcol["dumped_filename"].iloc[0], DirectoryType.count
+                )
+                raw_dir = f'{Config.PROJ_ROOT}/resources/{targetcol["gse_id"].iloc[0]}/0_dumped/{targetcol["gsm_id"].iloc[0]}'
                 if targetcol["filetype"].iloc[0] == "bam":
                     write_target_sh.append(
                         f"""
@@ -696,42 +776,29 @@ counted={rootdir}
 raw_path={raw_dir}/fastqs
 dirpath=$(poetry run python {Config.EXEC_ROOT}/bin/runtime/get_subdir.py $raw_path)
 cd $counted
-cellranger count --id=S_$cnt --fastqs=$dirpath --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
+cellranger count --id={targetcol["gsm_id"].iloc[0]} --fastqs=$dirpath --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
 """
                     )
                 elif targetcol["filetype"].iloc[0] == "fastq":
                     write_target_sh.append(
                         f"""
 counted={Directory.get_filepath(targetcol["dumped_filename"].iloc[0], DirectoryType.count)}
-raw_path={raw_dir}/fastqs
-dirpath=$(python $GLOB_ROOT/bin/py/hook_counting.py $raw_path)
+raw_path={raw_dir}/fastqs/rep{targetcol["replicate"].iloc[0]}
 cd $counted
-cellranger count --id=S_$cnt --fastqs=$dirpath --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
+cellranger count --id={targetcol["gsm_id"].iloc[0]} --fastqs=$raw_path --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
 """
                     )
                 else:
                     raise NCBIException("Unknown protocol file")
-                for target_rawfilename in targetcol["raw_filename"].unique().tolist():
-                    moved_name = targetcol[targetcol["raw_filename"] ==
-                                           target_rawfilename]["dumped_filename"].tolist()[0]
-                    write_target_sh.append(
-                        f'mv {target_rawfilename} {moved_name}\n')
-            srcfile = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}/dump_cluster_{threadnum}.sh"
+            srcfile = f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}/count_cluster_{threadnum}.sh"
             with open(srcfile, mode="w") as f:
                 f.writelines(write_target_sh)
             if jobsystem == JobSystem.default_bash:
-                subprocess.run(
-                    f"bash {srcfile}",
-                    shell=True
-                )
+                subprocess.run(f"bash {srcfile}", shell=True)
             elif jobsystem == JobSystem.nohup:
                 subprocess.run(
-                    f"nohup bash {srcfile} > {log_location}/dump_cluster_{threadnum}.log &",
-                    shell=True
+                    f"nohup bash {srcfile} > {log_location}/count_cluster_{threadnum}.log &",
+                    shell=True,
                 )
             elif jobsystem == JobSystem.PBS:
-                subprocess.run(
-                    f"qsub {srcfile}",
-                    shell=True
-                )
-        print("")
+                subprocess.run(f"qsub {srcfile}", shell=True)

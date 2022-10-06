@@ -19,7 +19,7 @@ class DirectoryType(Enum):
 class Directory:
 
     @staticmethod
-    def runs():
+    def __runs():
         if not os.path.isfile(f"{Config.PROJ_ROOT}/runs.tsv"):
             raise FileNotFoundError(
                 f"Could not found run.tsv in your project: {Config.PROJ_ROOT}.")
@@ -30,7 +30,7 @@ class Directory:
         """
         Initialize directory structure
         """
-        runs = Directory.runs()
+        runs = Directory.__runs()
         gses = runs["gse_id"].drop_duplicates().tolist()
         for gse in gses:
             parent = f"{Config.PROJ_ROOT}/resources/{gse}"
@@ -57,14 +57,14 @@ class Directory:
 
     @staticmethod
     def clean():
-        runs = Directory.runs()
+        runs = Directory.__runs()
         gses = runs["gse_id"].drop_duplicates().tolist()
         for gse in gses:
             shutil.rmtree(f"{Config.PROJ_ROOT}/{gse}", ignore_errors=True)
 
     @staticmethod
     def get_filepath(dumped_filename: str, type: DirectoryType):
-        target = Directory.runs()
+        target = Directory.__runs()
         target = target[target["dumped_filename"] == dumped_filename].iloc[0]
         if type == DirectoryType.dumped_file:
             return f'{Config.PROJ_ROOT}/resources/{target["dumped_filepath"]}'

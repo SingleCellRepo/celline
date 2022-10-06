@@ -6,6 +6,7 @@ from typing import Any, List
 from celline.controllers.argument import JobArgument, ThreadArgument
 from celline.controllers.controller import (AddController, AddRefController,
                                             CountController, DumpController,
+                                            HelpController,
                                             InitializeController)
 from celline.ncbi.genome import Genome
 from celline.plugins.collections.generic import ListC
@@ -37,6 +38,13 @@ class ControllerManager:
             )
         )
 
+    # if not ControllerManager.commands.Contains(cmd):
+    #     raise InvalidArgumentException(f"Could not found {cmd}")
+    # target_command = (
+    #     ControllerManager.commands.Where(lambda t_obj: t_obj.Key == cmd).First().Value
+    # )
+    # target_command.Key.GetMethod("call").Invoke(target_command.Value, options)o
+
 
 if __name__ == "__main__":
     cmd = sys.argv[3]
@@ -48,13 +56,6 @@ if __name__ == "__main__":
     Config.initialize(exec_root_path=sys.argv[1], proj_root_path=sys.argv[2])
     Setting.initialize()
     Genome.initialize()
-    # if not ControllerManager.commands.Contains(cmd):
-    #     raise InvalidArgumentException(f"Could not found {cmd}")
-    # target_command = (
-    #     ControllerManager.commands.Where(lambda t_obj: t_obj.Key == cmd).First().Value
-    # )
-    # target_command.Key.GetMethod("call").Invoke(target_command.Value, options)o
-
     # Analyze
     job_arg = JobArgument(options=options)
     th_arg = ThreadArgument(options=options)
@@ -75,6 +76,8 @@ if __name__ == "__main__":
         )
     elif cmd == "addref":
         AddRefController(options=options).call()
+    else:
+        HelpController().call(cmd)
     # SRR.dump(
     #     jobsystem=JobSystem.default_bash,
     #     max_nthread=1,
