@@ -21,7 +21,11 @@ class AddController:
         if len(options) < 1:
             raise InvalidArgumentException("Please specify run id")
         self.run_id = options[0]
-        if not (self.run_id.startswith("SRR") | self.run_id.startswith("GSM") | os.path.isfile(self.run_id)):
+        if not (
+            self.run_id.startswith("SRR")
+            | self.run_id.startswith("GSM")
+            | os.path.isfile(self.run_id)
+        ):
             print("Run ID should SRR ID or GSM ID.\nUsage:")
             HelpController.call("add")
             quit()
@@ -31,19 +35,20 @@ class AddController:
         if os.path.isfile(self.run_id):
             asyncio.get_event_loop().run_until_complete(SRR.add_range(self.run_id))
         else:
-            asyncio.get_event_loop().run_until_complete(
-                SRR.add(self.run_id))
+            asyncio.get_event_loop().run_until_complete(SRR.add(self.run_id))
 
 
 class DumpController:
     def __init__(self) -> None:
         pass
 
-    def call(self, jobsystem: JobSystem, nthread: int, cluster_server_name: NullableString) -> None:
+    def call(
+        self, jobsystem: JobSystem, nthread: int, cluster_server_name: NullableString
+    ) -> None:
         SRR.dump(
             jobsystem=jobsystem,
             max_nthread=nthread,
-            cluster_server_name=cluster_server_name
+            cluster_server_name=cluster_server_name,
         )
         return
 
@@ -52,12 +57,18 @@ class CountController:
     def __init__(self) -> None:
         pass
 
-    def call(self, jobsystem: JobSystem, each_nthread: int, nthread: int, cluster_server_name: NullableString) -> None:
+    def call(
+        self,
+        jobsystem: JobSystem,
+        each_nthread: int,
+        nthread: int,
+        cluster_server_name: NullableString,
+    ) -> None:
         SRR.count(
             jobsystem=jobsystem,
             each_nthread=each_nthread,
             max_nthread=nthread,
-            cluster_server_name=cluster_server_name
+            cluster_server_name=cluster_server_name,
         )
         return
 
@@ -66,7 +77,8 @@ class AddRefController:
     def __init__(self, options: List[str]) -> None:
         if len(options) < 2:
             raise InvalidArgumentException(
-                "Please specify celline addref [species] [path]")
+                "Please specify celline addref [species] [path]"
+            )
         self.species: str = options[0]
         self.path: str = options[1]
         pass

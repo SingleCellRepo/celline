@@ -19,9 +19,11 @@ from celline.ncbi.genome import Genome
 from celline.ncbi.resolver import RuntableResolver
 from celline.utils.config import Config, Setting
 from celline.utils.directory import Directory, DirectoryType
-from celline.utils.exceptions import (InvalidDataFrameHeaderException,
-                                      InvalidServerNameException,
-                                      NCBIException)
+from celline.utils.exceptions import (
+    InvalidDataFrameHeaderException,
+    InvalidServerNameException,
+    NCBIException,
+)
 from celline.utils.loader import Loader
 from celline.utils.typing import NullableString
 
@@ -110,10 +112,8 @@ class SRR:
             headers = response.html.find(
                 # type: ignore
                 "#ph-run-browser-data-access > div:nth-child(2) > table > thead > tr"
-            )[0].text.split(
-                "\n"
-            )
-            return headers[2: len(headers)]
+            )[0].text.split("\n")
+            return headers[2 : len(headers)]
 
         def build_run_table():
             num = 1
@@ -125,7 +125,7 @@ class SRR:
                 if len(data) == 0:  # type: ignore
                     break
                 data = data[0].text.split("\n")  # type: ignore
-                data = data[len(data) - 4: len(data)]
+                data = data[len(data) - 4 : len(data)]
                 if num == 1:
                     all_data = [data]
                 else:
@@ -183,24 +183,20 @@ class SRR:
                 mb = re.search("M", raw_size)
                 kb = re.search("K", raw_size)
                 if tb is not None:
-                    size = float(raw_size[0: tb.span()[0]]) * 1024
+                    size = float(raw_size[0 : tb.span()[0]]) * 1024
                 elif gb is not None:
-                    size = float(raw_size[0: gb.span()[0]])
+                    size = float(raw_size[0 : gb.span()[0]])
                 elif mb is not None:
-                    size = float(raw_size[0: mb.span()[0]]) / 1024
+                    size = float(raw_size[0 : mb.span()[0]]) / 1024
                 elif kb is not None:
-                    size = float(raw_size[0: kb.span()[0]]) / (1024 ^ 2)
+                    size = float(raw_size[0 : kb.span()[0]]) / (1024 ^ 2)
                 else:
-                    raise ValueError(
-                        f"Could not convert size data: {raw_size}")
+                    raise ValueError(f"Could not convert size data: {raw_size}")
                 size_data.append(size)
                 num += 2
             return DataFrame({"size": size_data})
 
-        runtable = (
-            runtable[runtable["Location"] == location]
-            .reset_index()
-        )
+        runtable = runtable[runtable["Location"] == location].reset_index()
         del runtable["index"]
 
         def get_GSM_spieces() -> List[str]:
@@ -211,8 +207,7 @@ class SRR:
 
         gsm_spieces = get_GSM_spieces()
         runtable["GSM"] = gsm_spieces[0]
-        runtable["GSE"] = SRR.SRADB.gsm_to_gse(gsm_spieces[0])[
-            "study_alias"][0]
+        runtable["GSE"] = SRR.SRADB.gsm_to_gse(gsm_spieces[0])["study_alias"][0]
         runtable["spieces"] = gsm_spieces[1]
 
         def build_SRR(series: Series, run_id: str, use_interactive: bool) -> _SRR:
@@ -233,43 +228,31 @@ class SRR:
                     search_result = re.search("_L", cloud_file_name)
                     if search_result is not None:
                         index = search_result.span()[1]
-                        laneid = cloud_file_name[index: index + 3]
-                        return laneid
-                    else:
-                        print(
-                            f"\n   [ERROR] Could not detect laneID automatically.\n   (detected file name: {cloud_file_name})"
-                        )
+                        laneid = cloud_file_name[index : index + 3]
+                        return f"L{laneid}"
                 else:
                     return None
 
             def get_readtype(cloud_file_name: str, filetype: str, interactive: bool):
                 if filetype == "fastq":
                     search_result_R = re.search("_R", cloud_file_name)
+                    if search_result_R is None:
+                        search_result_R = re.search(".R", cloud_file_name)
                     if search_result_R is not None:
                         index = search_result_R.span()[1]
                         idnum = f"R{cloud_file_name[index]}"
                         return idnum
                     else:
                         search_result_I = re.search("_I", cloud_file_name)
+                        if search_result_I is None:
+                            search_result_I = re.search(".I", cloud_file_name)
                         # suspect index
                         if search_result_I is not None:
                             index = search_result_I.span()[1]
                             idnum = f"I{cloud_file_name[index]}"
                             return idnum
                         else:
-                            if interactive:
-                                while True:
-                                    idnum = input(
-                                        f"Could not detect RepID or IndexID automatically\ndetected file name: {cloud_file_name}\nID? R1, R2, I1, or I2: "
-                                    )
-                                    if idnum in ["R1", "R2", "I1", "I2"]:
-                                        break
-                                    else:
-                                        print(
-                                            "please designate ID in R1, R2, I1, or I2."
-                                        )
-                            else:
-                                return None
+                            return None
                 else:
                     return None
 
@@ -304,25 +287,29 @@ class SRR:
                 read_type: NullableString,
             ):
                 if filetype == "fastq":
-                    return f"{gsm_id}_S{sample_id}_L{lane_id}_{read_type}_001.fastq.gz"
+                    return f"{gsm_id}_S{sample_id}_{lane_id}_{read_type}_001.fastq.gz"
                 elif filetype == "bam":
                     return f"{gsm_id}.bam"
                 else:
                     return f"{gsm_id}.unknown"
+
             srr = _SRR(run_id)
             srr.gsm_id = str(series["GSM"])
             srr.gse_id = str(series["GSE"])
             current = SRR.get_runtable()
             if current is not None:
-                exists_samplename = current[current["gse_id"]
-                                            == srr.gse_id]["sample_name"].tolist()
+                exists_samplename = current[current["gse_id"] == srr.gse_id][
+                    "sample_name"
+                ].tolist()
                 if len(exists_samplename) > 0:
                     if sample_name != exists_samplename[0]:
                         print(
-                            f"\n   [Error] Duplicated name on same GSE ID is not allowed.\n   Old: {exists_samplename[0]} <-> New: {sample_name}")
+                            f"\n   [Error] Duplicated name on same GSE ID is not allowed.\n   Old: {exists_samplename[0]} <-> New: {sample_name}"
+                        )
                         if thread_loader is not None:
                             thread_loader.stop_loading(
-                                status="Aborted building", failed=True)
+                                status="Aborted building", failed=True
+                            )
                         quit()
             srr.sample_name = sample_name
             srr.spieces = str(series["spieces"])
@@ -360,9 +347,7 @@ class SRR:
             if srr.filetype == "fastq":
                 srr.dumped_filepath = f"{srr.sample_name}/0_dumped/{srr.gsm_id}/fastqs/rep{repid}/{srr.dumped_filename}"
             elif srr.filetype == "bam":
-                srr.dumped_filepath = (
-                    f"{srr.sample_name}/0_dumped/{srr.gsm_id}/bams/{srr.dumped_filename}"
-                )
+                srr.dumped_filepath = f"{srr.sample_name}/0_dumped/{srr.gsm_id}/bams/{srr.dumped_filename}"
             else:
                 raise NCBIException("Unrecognized filetype")
             return srr
@@ -374,8 +359,7 @@ class SRR:
                 run_id=run_id,
                 use_interactive=use_interactive,
             )
-            results[srr.dumped_filename] = srr
-
+            results[srr.cloud_filepath] = srr
         if thread_loader is not None:
             thread_loader.stop_loading(status="Finished building")
         return results
@@ -421,7 +405,7 @@ class SRR:
         for run in runs.keys():
             compiled[run] = vars(runs[run])
         df = pd.concat([current, DataFrame(compiled).T])
-        df = df.drop_duplicates(subset="dumped_filepath", keep="last")
+        df = df.drop_duplicates(subset="cloud_filepath", keep="last")
         df.set_index("dumped_filepath", inplace=True)
         df.to_csv(f"{Config.PROJ_ROOT}/runs.tsv", sep="\t")
         if visualize:
@@ -433,7 +417,7 @@ class SRR:
         default_sample_name: NullableString = None,
         use_interactive=True,
         visualize=True,
-        update=False
+        update=False,
     ):
         """
         Auto-fetch and write the given run_id information. fastq file or bam will be added.
@@ -451,9 +435,6 @@ class SRR:
         """
         runtable = SRR.get_runtable()
         if runtable is not None:
-            if RuntableResolver.has_error(runtable, run_id):
-                print("Error detected")
-                update = True
             if not update:
                 if run_id.startswith("SRR"):
                     if run_id in runtable["run_id"].tolist():
@@ -489,8 +470,7 @@ class SRR:
             try:
                 ids = SRR.SRADB.gsm_to_srr(run_id)["run_accession"].tolist()
             except:
-                print(
-                    f"[WARNING] Fetching process encounted error, ignore.: {run_id}")
+                print(f"[WARNING] Fetching process encounted error, ignore.: {run_id}")
                 ids = None
             if thread_loader is not None:
                 thread_loader.stop_loading(status="Finished fetching GSM.")
@@ -512,7 +492,9 @@ class SRR:
         if visualize:
             runtable = SRR.get_runtable()
             if runtable is not None:
-                RuntableResolver.validate(runtable)
+                runtable = RuntableResolver.fix(runtable)
+                runtable.set_index("dumped_filepath", inplace=True)
+                runtable.to_csv(f"{Config.PROJ_ROOT}/runs.tsv", sep="\t")
 
     @staticmethod
     async def add_range(run_list_path: str):
@@ -532,14 +514,13 @@ class SRR:
             raise FileNotFoundError(
                 f"Could not find SRR list in your project. Please write run list to {run_list_path}.\n(We prepared SRR_list template :))"
             )
+        runs = SRR.get_runtable()
         run_list = pd.read_csv(run_list_path, sep="\t")
         if not run_list.columns.tolist() == COLUMS:
-            raise InvalidDataFrameHeaderException(
-                f"Header must contains {COLUMS}")
-        runs = pd.read_csv(f"{Config.PROJ_ROOT}/runs.tsv",
-                           sep="\t", index_col=0)
-        all_srr = runs["run_id"].unique().tolist()
-        run_list = run_list[~run_list["SRR_ID"].isin(all_srr)].reset_index()
+            raise InvalidDataFrameHeaderException(f"Header must contains {COLUMS}")
+        if runs is not None:
+            all_srr = runs["run_id"].unique().tolist()
+            run_list = run_list[~run_list["SRR_ID"].isin(all_srr)].reset_index()
         all_len = len(run_list["SRR_ID"])
 
         if all_len != 0:
@@ -558,7 +539,9 @@ class SRR:
             bar.clear()
         runtable = SRR.get_runtable()
         if runtable is not None:
-            RuntableResolver.validate(runtable)
+            runtable = RuntableResolver.fix(runtable)
+            runtable.set_index("dumped_filepath", inplace=True)
+            runtable.to_csv(f"{Config.PROJ_ROOT}/runs.tsv", sep="\t")
 
     @staticmethod
     def dump(
@@ -581,8 +564,7 @@ class SRR:
         """
         Directory.initialize()
         nowtime = str(time())
-        os.makedirs(
-            f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
+        os.makedirs(f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
         runtable = SRR.get_runtable()
         if runtable is None:
             print("[ERROR] Could not find run.tsv in your project.")
@@ -628,12 +610,10 @@ class SRR:
                     },
                 )
             if threadnum == max_nthread - 1:
-                target_run = run_ids[eachsize * threadnum: len(run_ids)]
+                target_run = run_ids[eachsize * threadnum : len(run_ids)]
             else:
-                target_run = run_ids[eachsize *
-                                     threadnum: eachsize * (threadnum + 1)]
-            target_data = runtable[runtable["run_id"].isin(
-                target_run)].reset_index()
+                target_run = run_ids[eachsize * threadnum : eachsize * (threadnum + 1)]
+            target_data = runtable[runtable["run_id"].isin(target_run)].reset_index()
             for run_id in target_run:
                 targetcol = target_data[target_data["run_id"] == run_id]
                 rootdir = "/".join(
@@ -685,8 +665,7 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
     ):
         Directory.initialize()
         nowtime = str(time())
-        os.makedirs(
-            f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}", exist_ok=True)
+        os.makedirs(f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}", exist_ok=True)
         runtable = SRR.get_runtable()
         if runtable is None:
             print("[ERROR] Could not find run table in your project.")
@@ -754,11 +733,11 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
                 )
             if threadnum == max_nthread - 1:
                 target_data = runtable[
-                    eachsize * threadnum: runtable.index.size
+                    eachsize * threadnum : runtable.index.size
                 ].reset_index()
             else:
                 target_data = runtable[
-                    eachsize * threadnum: eachsize * (threadnum + 1)
+                    eachsize * threadnum : eachsize * (threadnum + 1)
                 ].reset_index()
             for run_id in target_data["gsm_id"].unique().tolist():
                 targetcol = target_data[target_data["gsm_id"] == run_id]
