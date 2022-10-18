@@ -19,11 +19,9 @@ from celline.ncbi.genome import Genome
 from celline.ncbi.resolver import RuntableResolver
 from celline.utils.config import Config, Setting
 from celline.utils.directory import Directory, DirectoryType
-from celline.utils.exceptions import (
-    InvalidDataFrameHeaderException,
-    InvalidServerNameException,
-    NCBIException,
-)
+from celline.utils.exceptions import (InvalidDataFrameHeaderException,
+                                      InvalidServerNameException,
+                                      NCBIException)
 from celline.utils.loader import Loader
 from celline.utils.typing import NullableString
 
@@ -113,7 +111,7 @@ class SRR:
                 # type: ignore
                 "#ph-run-browser-data-access > div:nth-child(2) > table > thead > tr"
             )[0].text.split("\n")
-            return headers[2 : len(headers)]
+            return headers[2: len(headers)]
 
         def build_run_table():
             num = 1
@@ -125,7 +123,7 @@ class SRR:
                 if len(data) == 0:  # type: ignore
                     break
                 data = data[0].text.split("\n")  # type: ignore
-                data = data[len(data) - 4 : len(data)]
+                data = data[len(data) - 4: len(data)]
                 if num == 1:
                     all_data = [data]
                 else:
@@ -183,15 +181,16 @@ class SRR:
                 mb = re.search("M", raw_size)
                 kb = re.search("K", raw_size)
                 if tb is not None:
-                    size = float(raw_size[0 : tb.span()[0]]) * 1024
+                    size = float(raw_size[0: tb.span()[0]]) * 1024
                 elif gb is not None:
-                    size = float(raw_size[0 : gb.span()[0]])
+                    size = float(raw_size[0: gb.span()[0]])
                 elif mb is not None:
-                    size = float(raw_size[0 : mb.span()[0]]) / 1024
+                    size = float(raw_size[0: mb.span()[0]]) / 1024
                 elif kb is not None:
-                    size = float(raw_size[0 : kb.span()[0]]) / (1024 ^ 2)
+                    size = float(raw_size[0: kb.span()[0]]) / (1024 ^ 2)
                 else:
-                    raise ValueError(f"Could not convert size data: {raw_size}")
+                    raise ValueError(
+                        f"Could not convert size data: {raw_size}")
                 size_data.append(size)
                 num += 2
             return DataFrame({"size": size_data})
@@ -207,7 +206,8 @@ class SRR:
 
         gsm_spieces = get_GSM_spieces()
         runtable["GSM"] = gsm_spieces[0]
-        runtable["GSE"] = SRR.SRADB.gsm_to_gse(gsm_spieces[0])["study_alias"][0]
+        runtable["GSE"] = SRR.SRADB.gsm_to_gse(gsm_spieces[0])[
+            "study_alias"][0]
         runtable["spieces"] = gsm_spieces[1]
 
         def build_SRR(series: Series, run_id: str, use_interactive: bool) -> _SRR:
@@ -225,11 +225,21 @@ class SRR:
 
             def get_laneid(cloud_file_name: str, filetype: str, interactive: bool):
                 if filetype == "fastq":
-                    search_result = re.search("_L", cloud_file_name)
-                    if search_result is not None:
-                        index = search_result.span()[1]
-                        laneid = cloud_file_name[index : index + 3]
-                        return f"L{laneid}"
+                    current_runtable = SRR.get_runtable()
+                    if current_runtable is None:
+                        return "L001"
+                    gsm_id = gsm_spieces[0]
+                    exists_laneID: List[str] = [
+                        x
+                        for x in current_runtable[current_runtable["gsm_id"] == gsm_id][
+                            "lane_id"
+                        ]
+                        .unique()
+                        .tolist()
+                        if x != "nan"
+                    ]
+                    lane_id = "L{:0=3}".format(len(exists_laneID) + 1)
+                    return lane_id
                 else:
                     return None
 
@@ -345,7 +355,7 @@ class SRR:
             )
             srr.replicate = repid
             if srr.filetype == "fastq":
-                srr.dumped_filepath = f"{srr.sample_name}/0_dumped/{srr.gsm_id}/fastqs/rep{repid}/{srr.dumped_filename}"
+                srr.dumped_filepath = f"{srr.sample_name}/0_dumped/{srr.gsm_id}/fastqs/{srr.dumped_filename}"
             elif srr.filetype == "bam":
                 srr.dumped_filepath = f"{srr.sample_name}/0_dumped/{srr.gsm_id}/bams/{srr.dumped_filename}"
             else:
@@ -470,7 +480,8 @@ class SRR:
             try:
                 ids = SRR.SRADB.gsm_to_srr(run_id)["run_accession"].tolist()
             except:
-                print(f"[WARNING] Fetching process encounted error, ignore.: {run_id}")
+                print(
+                    f"[WARNING] Fetching process encounted error, ignore.: {run_id}")
                 ids = None
             if thread_loader is not None:
                 thread_loader.stop_loading(status="Finished fetching GSM.")
@@ -517,10 +528,12 @@ class SRR:
         runs = SRR.get_runtable()
         run_list = pd.read_csv(run_list_path, sep="\t")
         if not run_list.columns.tolist() == COLUMS:
-            raise InvalidDataFrameHeaderException(f"Header must contains {COLUMS}")
+            raise InvalidDataFrameHeaderException(
+                f"Header must contains {COLUMS}")
         if runs is not None:
             all_srr = runs["run_id"].unique().tolist()
-            run_list = run_list[~run_list["SRR_ID"].isin(all_srr)].reset_index()
+            run_list = run_list[~run_list["SRR_ID"].isin(
+                all_srr)].reset_index()
         all_len = len(run_list["SRR_ID"])
 
         if all_len != 0:
@@ -564,7 +577,8 @@ class SRR:
         """
         Directory.initialize()
         nowtime = str(time())
-        os.makedirs(f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
+        os.makedirs(
+            f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{nowtime}", exist_ok=True)
         runtable = SRR.get_runtable()
         if runtable is None:
             print("[ERROR] Could not find run.tsv in your project.")
@@ -610,10 +624,12 @@ class SRR:
                     },
                 )
             if threadnum == max_nthread - 1:
-                target_run = run_ids[eachsize * threadnum : len(run_ids)]
+                target_run = run_ids[eachsize * threadnum: len(run_ids)]
             else:
-                target_run = run_ids[eachsize * threadnum : eachsize * (threadnum + 1)]
-            target_data = runtable[runtable["run_id"].isin(target_run)].reset_index()
+                target_run = run_ids[eachsize *
+                                     threadnum: eachsize * (threadnum + 1)]
+            target_data = runtable[runtable["run_id"].isin(
+                target_run)].reset_index()
             for run_id in target_run:
                 targetcol = target_data[target_data["run_id"] == run_id]
                 rootdir = "/".join(
@@ -665,7 +681,8 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
     ):
         Directory.initialize()
         nowtime = str(time())
-        os.makedirs(f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}", exist_ok=True)
+        os.makedirs(
+            f"{Config.PROJ_ROOT}/jobs/auto/1_count/{nowtime}", exist_ok=True)
         runtable = SRR.get_runtable()
         if runtable is None:
             print("[ERROR] Could not find run table in your project.")
@@ -685,19 +702,23 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
             == False,
             axis=1,
         )
+
         runtable = runtable[runtable["run"]]
         del runtable["run"]
 
         def initialize_countdir(ser: Series):
             directory = f'{Directory.get_filepath(ser["dumped_filename"], DirectoryType.count)}/{ser["gsm_id"]}'
             if os.path.isdir(directory):
-                if not os.path.isdir(f"{directory}/out"):
+                if os.path.isdir(f"{directory}/outs"):
+                    return True
+                else:
                     print(
                         "[WARNING] There is an abnormally terminated Cellranger output. Delete these incomplete files."
                     )
                     shutil.rmtree(directory, ignore_errors=True)
-                return True
-            return False
+                    return False
+            else:
+                return False
 
         runtable["counted_directory"] = runtable.apply(
             lambda ser: initialize_countdir(ser),
@@ -733,36 +754,41 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
                 )
             if threadnum == max_nthread - 1:
                 target_data = runtable[
-                    eachsize * threadnum : runtable.index.size
+                    eachsize * threadnum: runtable.index.size
                 ].reset_index()
             else:
                 target_data = runtable[
-                    eachsize * threadnum : eachsize * (threadnum + 1)
+                    eachsize * threadnum: eachsize * (threadnum + 1)
                 ].reset_index()
             for run_id in target_data["gsm_id"].unique().tolist():
                 targetcol = target_data[target_data["gsm_id"] == run_id]
-                rootdir = Directory.get_filepath(
-                    targetcol["dumped_filename"].iloc[0], DirectoryType.count
+                gsmid: str = targetcol["gsm_id"].iloc[0]
+                dumped_file_path_spl: List[str] = (
+                    targetcol["dumped_filepath"].iloc[0].split("/")
                 )
-                raw_dir = f'{Config.PROJ_ROOT}/resources/{targetcol["gse_id"].iloc[0]}/0_dumped/{targetcol["gsm_id"].iloc[0]}'
+                root_dir = f"{Config.PROJ_ROOT}/resources/{dumped_file_path_spl[0]}"
+                src_dir = f"{root_dir}/0_dumped/{gsmid}"
+                dist_dir = f"{root_dir}/1_count"
                 if targetcol["filetype"].iloc[0] == "bam":
                     write_target_sh.append(
                         f"""
-cd {raw_dir}
+cd {root_dir}/0_dumped/{gsmid}
 echo "Converting bam to fastq files."
-cellranger bamtofastq --nthreads={each_nthread} bams/{targetcol["gsm_id"].iloc[0]}.bam fastqs
-counted={rootdir}
-raw_path={raw_dir}/fastqs
+rm -rf fastqs
+cellranger bamtofastq --nthreads={each_nthread} bams/{gsmid}.bam fastqs
+counted={dist_dir}
+raw_path={src_dir}/fastqs
+cd {Config.EXEC_ROOT}
 dirpath=$(poetry run python {Config.EXEC_ROOT}/bin/runtime/get_subdir.py $raw_path)
 cd $counted
-cellranger count --id={targetcol["gsm_id"].iloc[0]} --fastqs=$dirpath --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
+cellranger count --id={run_id} --fastqs=$dirpath --sample=bamtofastq --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
 """
                     )
                 elif targetcol["filetype"].iloc[0] == "fastq":
                     write_target_sh.append(
                         f"""
-counted={Directory.get_filepath(targetcol["dumped_filename"].iloc[0], DirectoryType.count)}
-raw_path={raw_dir}/fastqs/rep{targetcol["replicate"].iloc[0]}
+counted="{dist_dir}"
+raw_path="{src_dir}/fastqs"
 cd $counted
 cellranger count --id={targetcol["gsm_id"].iloc[0]} --fastqs=$raw_path --sample={run_id} --transcriptome={Genome.get(targetcol["spieces"].iloc[0])} --no-bam --localcores {each_nthread}
 """

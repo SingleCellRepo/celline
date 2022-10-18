@@ -48,7 +48,7 @@ class RuntableResolver:
         print("***** SRA Run Fixer *****")
         for index in range(len(error_srrs)):
             srr_id = error_srrs[index]
-            gse_id: str = runtable[runtable["run_id"] == srr_id]["gse_id"].iloc[0]
+            gsm_id: str = runtable[runtable["run_id"] == srr_id]["gsm_id"].iloc[0]
             print(
                 f"""--------------------------------------------
 ┏━ [{index+1}/{len(error_srrs)}] Fix errors on {srr_id}.━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -63,7 +63,7 @@ class RuntableResolver:
                 print(f"┣━ ERROR in lane id")
                 exists_laneID: List[str] = [
                     x
-                    for x in runtable[runtable["gse_id"] == gse_id]["lane_id"]
+                    for x in runtable[runtable["gsm_id"] == gsm_id]["lane_id"]
                     .unique()
                     .tolist()
                     if x != "nan"
@@ -138,7 +138,7 @@ class RuntableResolver:
             for index in runtable[runtable["run_id"] == srr_id].index.tolist():
                 result = runtable[runtable.index == index].iloc[0]
                 dumped_filename = f'{result["gsm_id"]}_S1_{result["lane_id"]}_{result["read_type"]}_001.fastq.gz'
-                dumped_filepath = f'{result["sample_name"]}/0_dumped/{result["gsm_id"]}/fastqs/rep{result["replicate"]}/{dumped_filename}'
+                dumped_filepath = f'{result["sample_name"]}/0_dumped/{result["gsm_id"]}/fastqs/{dumped_filename}'
                 runtable.loc[
                     runtable.index == index, "dumped_filename"
                 ] = dumped_filename
