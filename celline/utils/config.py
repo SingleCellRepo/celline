@@ -59,6 +59,5 @@ class Setting:
 
     @staticmethod
     def flush():
-        Setting.validate()
         with open(f"{Config.PROJ_ROOT}/setting.toml", mode="w") as f:
             toml.dump(Setting.as_dict(), f)
