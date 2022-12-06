@@ -10,7 +10,7 @@ from celline.ncbi.genome import Genome
 from celline.ncbi.srr import SRR
 from celline.utils.config import Config, Setting
 from celline.utils.exceptions import InvalidArgumentException
-from celline.utils.help import Help
+from celline.cmd.help import Commands
 from celline.utils.typing import NullableString
 
 
@@ -73,6 +73,22 @@ class CountController:
         return
 
 
+class SeuratController:
+    def __init__(self) -> None:
+        pass
+
+    def call(
+        self,
+        jobsystem: JobSystem,
+        cluster_server_name: NullableString,
+    ) -> None:
+        SRR.seurat(
+            jobsystem=jobsystem,
+            cluster_server_name=cluster_server_name,
+        )
+        return
+
+
 class AddRefController:
     def __init__(self, options: List[str]) -> None:
         if len(options) < 2:
@@ -102,11 +118,11 @@ class InitializeController:
 
 
 class HelpController:
-    helpobj: Union[Help, None] = None
+    helpobj: Union[Commands, None] = None
 
     @staticmethod
     def call(command: str):
         if HelpController.helpobj is None:
-            HelpController.helpobj = Help()
-        print(HelpController.helpobj.call(command))
+            HelpController.helpobj = Commands()
+        print(HelpController.helpobj.help(command))
         return

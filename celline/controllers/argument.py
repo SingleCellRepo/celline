@@ -8,6 +8,19 @@ from celline.utils.exceptions import (InvalidArgumentException,
 from celline.utils.typing import NullableString
 
 
+class Argument:
+    @staticmethod
+    def analyze(options: List[str], command: str):
+        if command not in options:
+            return None
+        else:
+            index = options.index(command)
+            if index + 1 > len(options):
+                print(
+                    "[ERROR] Invalid argument style. Please specify argument variable like `command --option value`")
+                quit()
+
+
 class JobArgument:
     def __init__(self, options: List[str]) -> None:
         if "--job" in options:
@@ -28,7 +41,7 @@ class JobArgument:
             self.cluster_server_name: NullableString = jobs[1]
         else:
             self.jobsystem = JobSystem.default_bash
-            self.cluster_server_name: NullableString = None
+            self.cluster_server_name = None
         pass
 
 

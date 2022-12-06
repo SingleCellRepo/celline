@@ -3,7 +3,6 @@ EXEC_DIR=$(dirname "$(
     cd "$(dirname "$0")" || exit
     pwd
 )")
-PROJ_DIR="$(pwd)"
 cd "${EXEC_DIR}" || exit
 if [ "$1" = "static" ]; then
     poetry run python "$EXEC_DIR/celline/initializer/initialize.py" "${EXEC_DIR}" "$2" "$3"

@@ -1,6 +1,4 @@
-from datetime import datetime
 import math
-from operator import index
 import os
 import re
 import shutil
@@ -135,7 +133,7 @@ class SRR:
 
         def get_filetype() -> str:
             # Define filetype
-            cloud_filepath: str = runtable["Name"][0]
+            cloud_filepath: str = str(runtable["Name"][0])
             if (
                 (re.search(".fastq.gz", cloud_filepath) is not None)
                 | (re.search(".fq.gz", cloud_filepath) is not None)
@@ -308,13 +306,13 @@ class SRR:
             srr.gse_id = str(series["GSE"])
             current = SRR.get_runtable()
             if current is not None:
-                exists_samplename = current[current["gse_id"] == srr.gse_id][
+                exists_samplename = current[current["gsm_id"] == srr.gsm_id][
                     "sample_name"
                 ].tolist()
                 if len(exists_samplename) > 0:
                     if sample_name != exists_samplename[0]:
                         print(
-                            f"\n   [Error] Duplicated name on same GSE ID is not allowed.\n   Old: {exists_samplename[0]} <-> New: {sample_name}"
+                            f"\n   [Error] Duplicated name on same GSM ID is not allowed.\n   Old: {exists_samplename[0]} <-> New: {sample_name}"
                         )
                         if thread_loader is not None:
                             thread_loader.stop_loading(
@@ -635,6 +633,7 @@ class SRR:
                 rootdir = "/".join(
                     targetcol["dumped_filepath"].iloc[0].split("/")[0:-1]
                 )
+                os.makedirs(rootdir, exist_ok=True)
                 if targetcol["filetype"].iloc[0] == "bam":
                     write_target_sh.append(
                         f"""
@@ -707,7 +706,7 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
         del runtable["run"]
 
         def initialize_countdir(ser: Series):
-            directory = f'{Directory.get_filepath(ser["dumped_filename"], DirectoryType.count)}/{ser["gsm_id"]}'
+            directory = f'{Directory.get_filepath(str(ser["dumped_filename"]), DirectoryType.count)}/{ser["gsm_id"]}'
             if os.path.isdir(directory):
                 if os.path.isdir(f"{directory}/outs"):
                     return True
@@ -725,6 +724,7 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
             axis=1,
         )
         runtable = runtable[~runtable["counted_directory"]]
+        print(runtable)
         ############################################
         total_size = runtable.index.size
         pararell_num = max_nthread // each_nthread
@@ -761,6 +761,7 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
                     eachsize * threadnum: eachsize * (threadnum + 1)
                 ].reset_index()
             for run_id in target_data["gsm_id"].unique().tolist():
+                print(run_id)
                 targetcol = target_data[target_data["gsm_id"] == run_id]
                 gsmid: str = targetcol["gsm_id"].iloc[0]
                 dumped_file_path_spl: List[str] = (
@@ -769,6 +770,7 @@ scfastq-dump {targetcol["run_id"].unique().tolist()[0]}
                 root_dir = f"{Config.PROJ_ROOT}/resources/{dumped_file_path_spl[0]}"
                 src_dir = f"{root_dir}/0_dumped/{gsmid}"
                 dist_dir = f"{root_dir}/1_count"
+                os.makedirs(dist_dir, exist_ok=True)
                 if targetcol["filetype"].iloc[0] == "bam":
                     write_target_sh.append(
                         f"""
@@ -803,6 +805,70 @@ cellranger count --id={targetcol["gsm_id"].iloc[0]} --fastqs=$raw_path --sample=
             elif jobsystem == JobSystem.nohup:
                 subprocess.run(
                     f"nohup bash {srcfile} > {log_location}/count_cluster_{threadnum}.log &",
+                    shell=True,
+                )
+            # elif jobsystem == JobSystem.PBS:
+            #     subprocess.run(f"qsub {srcfile}", shell=True)
+
+    @staticmethod
+    def seurat(
+        jobsystem: JobSystem,
+        cluster_server_name: NullableString = None,
+    ):
+        Directory.initialize()
+        nowtime = str(time())
+        srcroot = f"{Config.PROJ_ROOT}/jobs/auto/2_seurat/{nowtime}"
+        os.makedirs(srcroot, exist_ok=True)
+        runtable = SRR.get_runtable()
+        if runtable is None:
+            print("[ERROR] Could not find run.tsv in your project.")
+            quit()
+        RuntableResolver.validate(runtable)
+
+        runtable["seurat_filepath"] = runtable.apply(
+            lambda ser: f"{Config.PROJ_ROOT}/resources/{ser['sample_name']}/2_seurat/seurat.h5seurat", axis=1
+        )
+        runtable["fileexists"] = runtable.apply(
+            lambda ser: os.path.isfile(str(ser["seurat_filepath"])), axis=1
+        )
+        runtable = runtable[~runtable["fileexists"]]
+        del runtable["fileexists"]
+        sample_names: List[str] = runtable["sample_name"].unique().tolist()
+        if jobsystem == JobSystem.default_bash:
+            print(
+                "[Error] Please use nohup or job system."
+            )
+            quit()
+        for target_sample in sample_names:
+            write_target_sh = []
+            log_location = f"{srcroot}/logs"
+            os.makedirs(log_location, exist_ok=True)
+            if jobsystem == JobSystem.PBS:
+                if cluster_server_name is None:
+                    raise InvalidServerNameException(
+                        "Please specify cluster server name (like yuri) to use PBS job system."
+                    )
+                write_target_sh = Jobs.build(
+                    template_path=f"{Config.EXEC_ROOT}/templates/controllers/PBS.csh",
+                    replace_params={
+                        "cluster": cluster_server_name,
+                        "log": f"{log_location}/mkseurat_{target_sample}.log",
+                        "jobname": "mkseurat",
+                        "nthread": 1,
+                    },
+                )
+            if Setting.r_path is None or Setting.r_path == "":
+                print("[Error] Please set r_path setting.toml in your project.")
+                quit()
+            write_target_sh.append(
+                f"\n{Setting.r_path}script {Config.EXEC_ROOT}/R/integrate.R {Setting.name} {target_sample} {Config.PROJ_ROOT}/resources/{target_sample}/1_count"
+            )
+            srcfile = f"{srcroot}/mkseurat_{target_sample}.sh"
+            with open(srcfile, mode="w") as f:
+                f.writelines(write_target_sh)
+            if jobsystem == JobSystem.nohup:
+                subprocess.run(
+                    f"nohup bash {srcfile} > {log_location}/mkseurat_{target_sample} &",
                     shell=True,
                 )
             elif jobsystem == JobSystem.PBS:

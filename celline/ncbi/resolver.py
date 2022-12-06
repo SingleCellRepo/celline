@@ -1,5 +1,4 @@
 import os
-from pickle import TRUE
 import re
 from typing import List
 
@@ -48,17 +47,19 @@ class RuntableResolver:
         print("***** SRA Run Fixer *****")
         for index in range(len(error_srrs)):
             srr_id = error_srrs[index]
-            gsm_id: str = runtable[runtable["run_id"] == srr_id]["gsm_id"].iloc[0]
+            gsm_id: str = runtable[runtable["run_id"]
+                                   == srr_id]["gsm_id"].iloc[0]
             print(
                 f"""--------------------------------------------
 ┏━ [{index+1}/{len(error_srrs)}] Fix errors on {srr_id}.━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┣━ Refer to [https://trace.ncbi.nlm.nih.gov/Traces/index.html?view=run_browser&acc={srr_id}&display=data-access]"""
             )
-            target_laneid: str = errors[errors["run_id"] == srr_id]["lane_id"].iloc[0]
+            target_laneid: str = errors[errors["run_id"]
+                                        == srr_id]["lane_id"].iloc[0]
             req_correct: bool = pd.isna(target_laneid)  #
             target_laneid: str = str(target_laneid)
             if not target_laneid.startswith("L"):
-                req_correct = TRUE
+                req_correct = True
             if req_correct:
                 print(f"┣━ ERROR in lane id")
                 exists_laneID: List[str] = [
@@ -77,7 +78,8 @@ class RuntableResolver:
             req_correct: bool = False
             for read_type in read_types:
                 __req_correct = (
-                    (read_type == "nan") | (read_type == "") | (pd.isna(read_type))
+                    (read_type == "nan") | (
+                        read_type == "") | (pd.isna(read_type))
                 )
                 if not __req_correct:
                     __req_correct = (

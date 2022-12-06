@@ -3,9 +3,11 @@ import asyncio
 import sys
 from typing import Any, List
 
+from celline.cmd.help import Commands
 from celline.controllers.argument import JobArgument, ThreadArgument
 from celline.controllers.controller import (AddController, AddRefController,
                                             CountController, DumpController,
+                                            SeuratController,
                                             HelpController,
                                             InitializeController)
 from celline.ncbi.genome import Genome
@@ -53,6 +55,7 @@ if __name__ == "__main__":
         InitializeController().call(pwd=sys.argv[2])
         quit()
 # TODO: Future work, generalize these codes with abstract
+    # Commands.help(cmd)
     Config.initialize(exec_root_path=sys.argv[1], proj_root_path=sys.argv[2])
     Setting.initialize()
     Genome.initialize()
@@ -72,6 +75,11 @@ if __name__ == "__main__":
             jobsystem=job_arg.jobsystem,
             each_nthread=th_arg.each_nthread,
             nthread=th_arg.nthread,
+            cluster_server_name=job_arg.cluster_server_name
+        )
+    elif cmd == "mkseurat":
+        SeuratController().call(
+            jobsystem=job_arg.jobsystem,
             cluster_server_name=job_arg.cluster_server_name
         )
     elif cmd == "addref":

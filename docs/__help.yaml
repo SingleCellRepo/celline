@@ -1,6 +1,0 @@
-add:
-  description: "Add SRR run"
-  args:
-   RunID:
-    optional: True
-    description: "Test"

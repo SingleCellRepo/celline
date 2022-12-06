@@ -26,6 +26,7 @@ class Setting:
     name: str
     version: float
     wait_time: int
+    r_path: str
 
     @staticmethod
     def validate():
@@ -42,6 +43,9 @@ class Setting:
             },
             "fetch": {
                 "wait_time": Setting.wait_time
+            },
+            "R": {
+                "r_path": Setting.r_path
             }
         }
 
@@ -50,6 +54,7 @@ class Setting:
         Setting.name = dict["project"]["name"]
         Setting.version = dict["project"]["version"]
         Setting.wait_time = dict["fetch"]["wait_time"]
+        Setting.r_path = dict["R"]["r_path"]
 
     @staticmethod
     def initialize():
