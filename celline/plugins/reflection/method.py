@@ -18,7 +18,7 @@ class MethodInfo:
     def Name(self):
         return self.__prop.Key
 
-    def Invoke(self, instance: object = None, *args: Any):
+    def Invoke(self, instance: object = None, **args):
         retval: Any = None
         if len(args) == 0:
             if instance is None:

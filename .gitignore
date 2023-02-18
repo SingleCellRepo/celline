@@ -1,4 +1,8 @@
 __pycache__
 .mypy_cache/*
 test/
+test*
 poetry.lock
+DB/accessions.yaml
+__obsolete
+.venv

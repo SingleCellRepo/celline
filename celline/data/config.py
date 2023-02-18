@@ -1,9 +1,10 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import toml  # type: ignore
 
-from celline.utils.typing import NullableString
+
+import subprocess
 
 
 class Config:
@@ -11,13 +12,15 @@ class Config:
     PROJ_ROOT: str
 
     @staticmethod
-    def initialize(exec_root_path: str, proj_root_path: NullableString):
+    def initialize(exec_root_path: str, proj_root_path: Optional[str]):
         Config.EXEC_ROOT = exec_root_path
         if proj_root_path is None:
             return
         if not os.path.isfile(f"{proj_root_path}/setting.toml"):
-            raise FileNotFoundError(
-                "Could not find setting.toml. Please create or initialize your project.")
+            print(
+                "[ERROR] Could not find setting.toml. Please create or initialize your project."
+            )
+            quit()
         Config.PROJ_ROOT = proj_root_path
 
 
@@ -26,7 +29,7 @@ class Setting:
     name: str
     version: float
     wait_time: int
-    r_path: str
+    r_path: str = ""
 
     @staticmethod
     def validate():

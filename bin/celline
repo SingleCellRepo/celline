@@ -3,9 +3,10 @@ EXEC_DIR=$(dirname "$(
     cd "$(dirname "$0")" || exit
     pwd
 )")
+PROJ_DIR="$(pwd)"
 cd "${EXEC_DIR}" || exit
 if [ "$1" = "static" ]; then
-    poetry run python "$EXEC_DIR/celline/initializer/initialize.py" "${EXEC_DIR}" "$2" "$3"
+    poetry run python "$EXEC_DIR/celline/initializer/initialize.py" "${EXEC_DIR}" "${@}"
 else
-    poetry run python -m celline "${EXEC_DIR}" "${PROJ_DIR}" "${1}" "${2}" "${3}" "${4}" "${5}"
+    poetry run python -m celline "${EXEC_DIR}" "${PROJ_DIR}" "${@}"
 fi

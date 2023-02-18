@@ -1,5 +1,12 @@
 {
     "python.analysis.extraPaths": [
         "/home/yuyasato/work1/Projects/lib/cellpline/cellpline"
+    ],
+    "cSpell.words": [
+        "celline",
+        "cellinerc",
+        "sratookit",
+        "sratoolkit",
+        "toolkits"
     ]
 }

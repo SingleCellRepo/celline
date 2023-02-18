@@ -1,9 +1,9 @@
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import toml  # type:ignore
 
-from celline.utils.config import Config
+from celline.data.config import Config
 
 
 class Genome:
@@ -35,12 +35,11 @@ class Genome:
         Genome.__flush()
 
     @staticmethod
-    def get(species: str):
+    def get(species: str) -> Optional[str]:
         if species not in Genome.__genomes:
-            raise FileNotFoundError(
-                f"Could not find reference genome for {species}")
+            return None
         if not os.path.isdir(Genome.__genomes[species]):
-            raise FileExistsError("Could not found reference genome file")
+            return None
         return Genome.__genomes[species]
 
     @staticmethod

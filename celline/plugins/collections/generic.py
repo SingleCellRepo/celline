@@ -310,7 +310,7 @@ class ListC(Generic[T1]):
     def Values(self):
         """ Convert value to list[T1]
         """
-        data = list()
+        data = list[T1]()
         for val in self.__value:
             data.append(val)
         return data

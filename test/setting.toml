@@ -1,6 +1,0 @@
-[project]
-name="TestProject"
-version=1.0
-
-[fetch]
-wait_time=4
