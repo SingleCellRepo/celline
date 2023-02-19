@@ -9,12 +9,15 @@
 
 <br/>
 
-![Commit](https://badges.pufler.dev/commits/SingleCellRepo/celline)
 ![Activity](https://img.shields.io/badge/dynamic/json?label=Latest%20event&query=%24%5B0%5D.created_at&url=https%3A%2F%2Fapi.github.com%2Fusers%2Fkcabo%2Fevents)
 
 [![Open in Visual Studio Code](https://img.shields.io/static/v1?logo=visualstudiocode&label=&message=Open%20in%20Visual%20Studio%20Code&labelColor=2c2c32&color=007acc&logoColor=007acc)](https://open.vscode.dev/c/celline)
 ![workflow](https://img.shields.io/github/actions/workflow/status/SingleCellRepo/celline/unit-tests.yml)
 ![license](https://img.shields.io/github/license/SingleCellRepo/celline)
+
+<a href = "https://github.com/Tanu-N-Prabhu/Python/graphs/contributors">
+  <img src = "https://contrib.rocks/image?repo = SingleCellRepo/celline"/>
+</a>
 
 </div>
 <br/><br/>
