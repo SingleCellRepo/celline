@@ -93,3 +93,15 @@ celline mkseurat
 ```bash
 celline integrate <target_GSM_ID>
 ```
+
+## License
+
+This project is available under the MIT License. See the LICENSE file for more information.
+
+## Contact
+
+If you have any questions or suggestions regarding this project, contact [Yuya Sato](yu.pisces.556223@akane.waseda.jp).
+
+## Acknowledgement
+
+This project was supported by Toru Asahi, Kosuke Kataoka. We would like to take this opportunity to express our gratitude.
