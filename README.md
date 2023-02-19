@@ -37,8 +37,6 @@ In this study, we constructed a system that enables users to easily obtain Singl
 
 Users can prepare the necessary environment for analysis, download data, and find biological events in one step.
 
-Translated with www.DeepL.com/Translator (free version)
-
 ## 💻 Installation
 
 ### 1. Clone this repository.
