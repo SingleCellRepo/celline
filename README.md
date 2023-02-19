@@ -17,7 +17,7 @@
 
 <br/>
 
-<span><font size=5em>Contributors</font></span>
+<span><font size=6em>Contributors</font></span>
 
 <a href="https://github.com/SingleCellRepo/celline/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=SingleCellRepo/celline" />
