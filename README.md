@@ -15,8 +15,8 @@
 ![workflow](https://img.shields.io/github/actions/workflow/status/SingleCellRepo/celline/unit-tests.yml)
 ![license](https://img.shields.io/github/license/SingleCellRepo/celline)
 
-<a href = "https://github.com/Tanu-N-Prabhu/Python/graphs/contributors">
-  <img src = "https://contrib.rocks/image?repo = SingleCellRepo/celline"/>
+<a href="https://github.com/SingleCellRepo/celline/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=SingleCellRepo/celline" />
 </a>
 
 </div>
