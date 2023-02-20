@@ -33,14 +33,17 @@ relpath() {
   eval "$1=\$3/ && $1=\$4\${2#\"\${$1}\"}"
 }
 
+current_path="$(pwd)"
+install_py_path="$(pwd)/tools/install.py"
+
 read -e -p "Installation target directory? " install_dir
 abspath abs_install_dir ${install_dir/"~"/$HOME}
+echo "Install from: $current_path"
 echo "Install to: $abs_install_dir"
-echo "using $(which python)"
 mkdir -p "$abs_install_dir/celline" & cd "$abs_install_dir/celline"
-poetry env use "$(which python)"
-python -m venv .venv
-echo "instaling poetry"
+# poetry env use "$(which python)"
+# python -m venv .venv
+# echo "instaling poetry"
 pip install inquirer
 pip install tqdm
-poetry run python tools/install.py "$(pwd)" "$abs_install_dir" "$HOME"
+python "${install_py_path}" "${current_path}" "$abs_install_dir" "$HOME"

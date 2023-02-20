@@ -1,4 +1,6 @@
 # from pathlib import Path
+from __future__ import print_function
+import sys
 import glob
 import os
 import readline
@@ -12,12 +14,20 @@ import inquirer
 from inquirer import Path, prompt
 import tqdm
 
+
+def spinner_gen():
+    while 1:
+        yield '|'
+        yield '/'
+        yield '-'
+        yield '\\'
+
+
 current_dir = os.getcwd()
 
 pwd = sys.argv[1]
 install_target_dir = sys.argv[2]
 HOME = sys.argv[3]
-os.chdir(pwd)
 # if "." in sys.argv[2]:
 #     install_target_dir = os.path.abspath(f"{sys.argv[2]}")
 # elif sys.argv[2].startswith("~"):
@@ -27,11 +37,11 @@ os.chdir(pwd)
 
 # if not install_target_dir.endswith("/"):
 #     install_target_dir += "/"
-install_target_dir += "celline"
+install_target_dir += "/celline"
 
 questions = [
     inquirer.Confirm(
-        name="confirm", message=f"Install to '{install_target_dir}' ?", default=True
+        name="confirm", message=f"Install to '{install_target_dir}' <-- '{pwd}'?", default=True
     ),
     # inquirer.Confirm(
     #     name="confirm",
@@ -48,6 +58,7 @@ if answers is not None:
 
 all_directories: List[str] = []
 all_files: List[str] = []
+print("Migrating install target")
 for root, dirs, files in os.walk(top=f"{pwd}"):
     for dir in dirs:
         target_dir = os.path.join(root, dir).replace(pwd, "")
@@ -75,6 +86,8 @@ for dir in dir_iter_tqdm:
 file_iter_tqdm = tqdm.tqdm(all_files)
 for file in file_iter_tqdm:
     file_iter_tqdm.set_description(f"Copying: {file}")
+    if os.path.isfile(f"{install_target_dir}/{file}"):
+        os.remove(f"{install_target_dir}/{file}")
     shutil.copy(f"{pwd}/{file}", f"{install_target_dir}/{file}")
     file_iter_tqdm.set_description("Copying File: Complete")
 
@@ -146,7 +159,7 @@ if install_sra_toolkit:
             raise TypeError("Unknown os selection.")
     if install_sra_toolkit:
         proc = subprocess.Popen(
-            f"cd {install_target_dir} && mkdir -p toolkits && cd toolkits && wget {sratookit_install_path} -O sratoolkit.tar.gz",
+            f"rm -rf {install_target_dir}/toolkits && cd {install_target_dir} && mkdir -p toolkits && cd toolkits && wget {sratookit_install_path} -O sratoolkit.tar.gz",
             shell=True,
         )
         result = proc.wait()
@@ -160,24 +173,59 @@ proc = subprocess.Popen("echo ~", stdout=subprocess.PIPE, shell=True)
 result = proc.communicate()
 home_dir = result[0].decode("utf-8").replace("\n", "")
 alias_text_to_rc = f"""
-if [ -f ~/.cellinerc ]; then
-    export PATH="~/.cellinerc:$PATH"
+if [ -f {home_dir}/.cellinerc ]; then
+    source {home_dir}/.cellinerc
 fi
 """
-with open(f"{home_dir}/.bashrc", "r") as f:
+
+proc = subprocess.Popen("echo $SHELL", stdout=subprocess.PIPE, shell=True)
+result = proc.communicate()
+shell_style = result[0].decode("utf-8").replace("\n", "")
+
+if "bash" in shell_style:
+    shell_rc = f"{home_dir}/.bashrc"
+elif "zsh" in shell_style:
+    shell_rc = f"{home_dir}/.zshrc"
+else:
+    questions = [
+        inquirer.List(
+            name="shellstyle",
+            message=f"Could not find target shell style. which one?",
+            choices=["Bash", "Zsh"],
+        )
+    ]
+    answers = inquirer.prompt(questions, raise_keyboard_interrupt=True)
+    if answers is not None:
+        if answers["shellstyle"] == "Bash":
+            shell_rc = f"{home_dir}/.bashrc"
+        elif answers["shellstyle"] == "Zsh":
+            shell_rc = f"{home_dir}/.zshrc"
+        else:
+            raise TypeError("Unknown selection.")
+    else:
+        raise TypeError("Unknown selection.")
+
+
+with open(shell_rc, "r") as f:
     lines = f.readlines()
 write_alias_call = True
-for line in lines:
-    if alias_text_to_rc in line:
-        write_alias_call = False
+if alias_text_to_rc in "\n".join(lines):
+    write_alias_call = False
 if write_alias_call:
-    with open(f"{home_dir}/.bashrc", "a") as f:
+    with open(shell_rc, "a") as f:
         f.write(alias_text_to_rc)
 
 with open(f"{home_dir}/.cellinerc", "w") as f:
     f.write("## Celline rc file\n")
+    rc_targetdata = [f'export PATH="{install_target_dir}/bin:$PATH"']
     if install_sra_toolkit:
-        f.write(f'export PATH="{install_target_dir}/toolkits/sratoolkit/bin:$PATH"')
+        rc_targetdata.append(
+            f'export PATH="{install_target_dir}/toolkits/sratoolkit/bin:$PATH"'
+        )
+    f.write("\n".join(rc_targetdata))
+for root, dirs, files in os.walk(f"{install_target_dir}/bin"):
+    for f in files:
+        os.chmod(os.path.join(root, f), 0o777)
 # questions = [
 #     inquirer.Path(
 #         "target_gsms",

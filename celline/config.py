@@ -10,13 +10,16 @@ class Config:
     PROJ_ROOT: str
 
     @staticmethod
-    def initialize(exec_root_path: str, proj_root_path: Optional[str]):
+    def initialize(exec_root_path: str, proj_root_path: str, cmd: str):
         Config.EXEC_ROOT = exec_root_path
         Config.PROJ_ROOT = proj_root_path
         if proj_root_path is None:
             return
-        if not os.path.isfile(f"{proj_root_path}/setting.toml"):
+        if cmd == "init":
             Setting.create_new()
+        else:
+            if not os.path.isfile(f"{proj_root_path}/setting.toml"):
+                print("Could not find setting.toml in your project.")
 
 
 class Setting:
@@ -29,7 +32,8 @@ class Setting:
     @staticmethod
     def validate():
         if not os.path.isfile(f"{Config.PROJ_ROOT}/setting.toml"):
-            raise FileNotFoundError("Could not find setting file in your project.")
+            raise FileNotFoundError(
+                "Could not find setting file in your project.")
 
     @staticmethod
     def as_dict():
@@ -58,8 +62,10 @@ class Setting:
         result = proc.communicate()
         default_r = result[0].decode("utf-8").replace("\n", "")
         questions = [
-            inquirer.Text(name="projname", message="What is a name of your project?"),
-            inquirer.Path(name="rpath", message="Where is R?", default=default_r),
+            inquirer.Text(name="projname",
+                          message="What is a name of your project?"),
+            inquirer.Path(name="rpath", message="Where is R?",
+                          default=default_r),
         ]
         result = inquirer.prompt(questions, raise_keyboard_interrupt=True)
         if result is None:
