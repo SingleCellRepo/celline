@@ -15,6 +15,7 @@ import yaml
 from enum import Enum
 import re
 import os
+import pprint
 
 DB = SRAweb()
 
@@ -184,7 +185,9 @@ class SRR:
             self.readtype: SRR.ScRun.ReadType = readtype
             self.lane: SRR.ScRun.Lane = lane
 
-    def __init__(self, id: str, parent_gsm: str, file_type: ScRun.FileType, runs: List[ScRun]) -> None:
+    def __init__(
+        self, id: str, parent_gsm: str, file_type: ScRun.FileType, runs: List[ScRun]
+    ) -> None:
         self.id: str = id
         self.parent_gsm: str = parent_gsm
         self.file_type: SRR.ScRun.FileType = file_type
@@ -228,21 +231,19 @@ class SRR:
         await response.html.arender(
             wait=Setting.wait_time / 2, sleep=int(Setting.wait_time / 2)
         )
-        result = HTMLStructure.build(response)
-        if result.Length == 0:
+        result = HTMLStructure.build(response).Values
+        if len(result) == 0:
             print(f"[ERROR] Could not find Run ID {sra_run_id}")
             quit()
         strct = result[0]
         if strct is None:
             print(f"[ERROR] Could not find Run ID {sra_run_id}")
             quit()
-
         return SRR(
             id=sra_run_id,
             parent_gsm=strct.gsmid,
             file_type=SRR.ScRun.FileType.from_string(strct.filetype),
-            runs=result.Select(
-                lambda raw: build_scrun(raw)).Values
+            runs=[build_scrun(run) for run in result],
         )
 
     @staticmethod
@@ -257,12 +258,11 @@ class SRR:
         if len(dict) == 0:
             print("[ERROR] Could not find SRR.")
             quit()
-        id = dict[0]["id"]
-        return SRR(
+        id = dict[0][0]["id"]
+        srr = SRR(
             id=id,
-            parent_gsm=dict[0]["parent_gsm"],
-            file_type=SRR.ScRun.FileType.from_string(
-                dict[0]["filetype"]),
+            parent_gsm=dict[0][0]["parent_gsm"],
+            file_type=SRR.ScRun.FileType.from_string(dict[0][0]["filetype"]),
             runs=[
                 SRR.ScRun(
                     id=d["id"],
@@ -271,9 +271,10 @@ class SRR:
                     lane=SRR.ScRun.Lane(d["readtype"]),
                     readtype=SRR.ScRun.ReadType.from_string(d["readtype"]),
                 )
-                for d in dict
+                for d in dict[0]
             ],
         )
+        return srr
 
     def to_dict(self) -> List[Dict]:
         result: List[Dict] = []
@@ -302,7 +303,7 @@ class GSM:
         raw_link: str,
         srx_id: str,
         child_srr_ids: List[str],
-        parent_gse_id: str
+        parent_gse_id: str,
     ):
         self.id: str = id
         """GSE ID"""
@@ -351,8 +352,9 @@ class GSM:
             raw_link=target_gsm["ftplink"][1],
             srx_id=target_gsm["SRA"][1],
             child_srr_ids=DB.gsm_to_srr(id)["run_accession"].to_list(),
-            parent_gse_id=(__result.query(
-                'accession.str.contains("GSE")', engine='python')).to_dict()["accession"][0]
+            parent_gse_id=(
+                __result.query('accession.str.contains("GSE")', engine="python")
+            ).to_dict()["accession"][0],
         )
 
     @staticmethod
@@ -432,6 +434,9 @@ class GSE:
             print("[ERROR] Could not find target GSE data.")
             quit()
         target_gse = __result.query(f'accession == "{id}"')
+        if target_gse.empty:
+            print("[ERROR] Target GSE is not exist or empty.")
+            quit()
         return GSE(
             id=target_gse.pipe(lambda d: d["accession"])[0],
             title=target_gse.pipe(lambda d: d["title"])[0],

@@ -208,10 +208,7 @@ else:
 
 with open(shell_rc, "r") as f:
     lines = f.readlines()
-write_alias_call = True
-if alias_text_to_rc in "\n".join(lines):
-    write_alias_call = False
-if write_alias_call:
+if f"source {home_dir}/.cellinerc" not in "\n".join(lines):
     with open(shell_rc, "a") as f:
         f.write(alias_text_to_rc)
 

@@ -9,4 +9,5 @@ if __name__ == "__main__":
         exec_root_path=sys.argv[1], proj_root_path=sys.argv[2], cmd=cmd)
     Setting.initialize()
     # Genome.initialize()
-    FunctionManager.call(sys.argv[3:])
+    if cmd != "init":
+        FunctionManager.call(sys.argv[3:])

@@ -2,6 +2,8 @@ from __future__ import annotations  # type: ignore
 from celline.plugins.collections.generic import ListC
 from requests_html import HTMLResponse
 import re
+from typing import List
+import pandas as pd
 
 
 class HTMLStructure:
@@ -14,7 +16,14 @@ class HTMLStructure:
     read: str
 
     def __init__(
-            self, filesize: str, cloud_path: str, filetype: str,  spieces: str, gsmid: str, srrid: str) -> None:
+        self,
+        filesize: str,
+        cloud_path: str,
+        filetype: str,
+        spieces: str,
+        gsmid: str,
+        srrid: str,
+    ) -> None:
         self.cloud_path = cloud_path
         self.filetype = filetype
         self.filesize = filesize
@@ -45,42 +54,41 @@ class HTMLStructure:
         gsmid = metainfo[0].split(":")[0]
         spieces = metainfo[1].replace(" ", "")
         srrid = metainfo[2].split("(")[1].replace(")", "")
+        raw_data = response.html.find(
+            "#ph-run-browser-data-access > div:nth-child(2) > table > tbody"
+        )[
+            0
+        ]  # type: ignore
+        __header = response.html.find(
+            "#ph-run-browser-data-access > div:nth-child(2) > table > thead > tr"
+        )[0].text.split(
+            "\n"
+        )  # type: ignore
+        __append_target: List[str] = []
+        for el in list(raw_data.find("tr")):  # type: ignore
+            el_text = el.text.split("\n")
+            if len(el_text) == len(__header):
+                __append_target.append(el_text)
+        data_df = pd.DataFrame(data=__append_target, columns=__header)
         results: ListC[HTMLStructure] = ListC[HTMLStructure]()
-        while True:
-            data = response.html.find(
-                f"#ph-run-browser-data-access > div:nth-child(2) > table > tbody > tr:nth-child({num + 1})"
-            )
-            if len(data) == 0:  # type: ignore
-                break
-            data = str(data[0].text).split("\n")  # type: ignore
-            if num % locnum == 0:
-                __filetype: str = str(data[3])  # type: ignore
-                if ("fastq.gz" in __filetype) or ("fq.gz" in __filetype):
-                    filetype = "fastq"
-                elif ("bam" in __filetype):
-                    filetype = "bam"
-                else:
-                    print(f"[ERROR] Unknown file type {__filetype}")
-                    quit()
-                results.Add(
-                    HTMLStructure(
-                        filesize=data[1],  # type: ignore
-                        cloud_path=data[3],  # type: ignore
-                        filetype=filetype,
-                        spieces=spieces,
-                        gsmid=gsmid,
-                        srrid=srrid
-                    )
+        for _, data in data_df.iterrows():
+            results.Add(
+                HTMLStructure(
+                    filesize=data["Size"],  # type: ignore
+                    cloud_path=data["Name"],  # type: ignore
+                    filetype=data["Type"],
+                    spieces=spieces,
+                    gsmid=gsmid,
+                    srrid=srrid,
                 )
-                del data
-            num += 1
+            )
+
         if results.Length == 0:
             print("[ERROR] Could not find runs")
             quit()
         if results.First().filetype == "fastq":
             if results.Length == 1:
-                print(
-                    "[ERROR] Only one read exists. Only paired reads are supported.")
+                print("[ERROR] Only one read exists. Only paired reads are supported.")
                 quit()
             elif results.Length == 2:
                 num = 1
@@ -98,8 +106,7 @@ class HTMLStructure:
                         del search_result_R
                         del index
                     else:
-                        search_result_I = re.search(
-                            "_I", clname)
+                        search_result_I = re.search("_I", clname)
                         if search_result_I is not None:
                             index = search_result_I.span()[1]
                             result.read = f"I{clname[index]}"
@@ -107,11 +114,16 @@ class HTMLStructure:
                             del index
                         else:
                             print(
-                                "[Warning] Could not find Read or Index number in the cloud file :( Please specify Read num or Index num.")
+                                "[Warning] Could not find Read or Index number in the cloud file :( Please specify Read num or Index num."
+                            )
                             while True:
-                                input_data = input(
-                                    "Specify ID in R1, R2, I1, (I2)")
-                                if (input_data == "R1") or (input_data == "R2") or (input_data == "I1") or (input_data == "I2"):
+                                input_data = input("Specify ID in R1, R2, I1, (I2)")
+                                if (
+                                    (input_data == "R1")
+                                    or (input_data == "R2")
+                                    or (input_data == "I1")
+                                    or (input_data == "I2")
+                                ):
                                     result.read = input_data
                                     break
             else:

@@ -61,11 +61,13 @@ class Dump(CellineFunction):
                     f"{root}/raw",
                 ]
             )
-            if len(os.listdir(f"{root}/raw")) == 0:
-                target_gsm.append(gsm_id)
-            else:
-                print(
-                    f"[Warning] Specified GSM ID ({gsm_id}) is already dumped.")
+            # if len(os.listdir(f"{root}/raw")) == 0:
+            #     target_gsm.append(gsm_id)
+            # else:
+            #     print(
+            #         f"[Warning] Specified GSM ID ({gsm_id}) is already dumped.")
+            # TODO: Dump management system
+            target_gsm.append(gsm_id)
         return target_gsm
 
     def on_call(self, args: Dict[str, DictionaryC[str, Optional[str]]]):
@@ -121,6 +123,7 @@ class Dump(CellineFunction):
                 if srr.file_type == SRR.ScRun.FileType.Fastq:
                     cmd = f"cd {root}/raw && scfastq-dump {srr_id}"
                     sample_id = f"S{srrs.index(srr_id) + 1}"
+                    print(len(srr.sc_runs))
                     for run in srr.sc_runs:
                         dumped_name = f"{gsm}_{sample_id}_{run.lane.name}_{run.readtype.name}.fastq.gz"
                         raw_name = srr_id

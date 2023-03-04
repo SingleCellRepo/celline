@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 import os
 
 
-def read_accessions() -> Dict[str, Dict]:
+def read_accessions() -> Dict[str, List[Dict]]:
     filepath = f"{Config.EXEC_ROOT}/DB/accessions.yaml"
     if os.path.exists(filepath):
         with open(filepath, mode="r") as f:
@@ -29,7 +29,7 @@ def append_accessions(accessions: Dict):
     for el in accessions["SRR"]:
         for srrid in el:
             if srrid["id"] not in existing["SRR"]:
-                existing["SRR"][srrid["id"]] = srrid
+                existing["SRR"][srrid["id"]] = el
     write_accessions(existing)
 
 

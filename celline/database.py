@@ -20,8 +20,7 @@ class NCBI:
     def __from_gse(gse_id: str):
         """Fetch run data from GSE database"""
         gse = GSE.search(gse_id)
-        choices = [
-            f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
+        choices = [f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
         questions = [
             inquirer.Checkbox(
                 "target_gsms",
@@ -55,6 +54,7 @@ class NCBI:
             yamldata["SRR"] = [d.to_dict() for d in srrs]
             append_accessions(yamldata)
             append_runs(gsm_ids)
+        return gse
 
     @staticmethod
     def __from_gsm(gsm_id: str):
@@ -74,7 +74,7 @@ class NCBI:
         yamldata["SRR"] = [d.to_dict() for d in srrs]
         append_accessions(yamldata)
         append_runs([gsm_id])
-        return
+        return gsm
 
     @staticmethod
     def add(id: str):
@@ -89,14 +89,35 @@ class NCBI:
                     target_gsm_ids = gsm_el.split(":")
                     start = int(target_gsm_ids[0].replace("GSM", ""))
                     end = int(target_gsm_ids[1].replace("GSM", "")) + 1
-                    gsm_ids.extend(
-                        [f"GSM{d}" for d in list(range(start, end, 1))]
-                    )
+                    gsm_ids.extend([f"GSM{d}" for d in list(range(start, end, 1))])
                 else:
                     gsm_ids.append(gsm_el)
             for i in tqdm(range(len(gsm_ids)), desc="Fetching"):
                 NCBI.__from_gsm(gsm_ids[i])
         return
+
+    @staticmethod
+    def search(id: str):
+        if id.startswith("GSE"):
+            return NCBI.__from_gse(id)
+        elif id.startswith("GSM"):
+            gsm_list = id.split(",")
+            gsm_ids: List[str] = []
+            result: List[GSM] = []
+            for gsm_el in gsm_list:
+                if ":" in gsm_el:
+                    target_gsm_ids = gsm_el.split(":")
+                    start = int(target_gsm_ids[0].replace("GSM", ""))
+                    end = int(target_gsm_ids[1].replace("GSM", "")) + 1
+                    gsm_ids.extend([f"GSM{d}" for d in list(range(start, end, 1))])
+                else:
+                    gsm_ids.append(gsm_el)
+            for i in tqdm(range(len(gsm_ids)), desc="Fetching"):
+                result.append(NCBI.__from_gsm(gsm_ids[i]))
+            return result
+        else:
+            print("[ERROR] Unknown request type")
+            quit()
 
     @staticmethod
     def get_gsms():
@@ -110,7 +131,8 @@ class NCBI:
                 result[gsm_id] = runs[gsm_id]
         for failed in failed_gsm:
             print(
-                f"[ERROR] Could not find GSM ID. Did you deleted the cache? Please re-run `celline add {failed}`")
+                f"[ERROR] Could not find GSM ID. Did you deleted the cache? Please re-run `celline add {failed}`"
+            )
         if len(failed_gsm) != 0:
             quit()
         return result

@@ -5,8 +5,8 @@ EXEC_DIR=$(dirname "$(
 )")
 PROJ_DIR="$(pwd)"
 cd "${EXEC_DIR}" || exit
-poetry env use "$(which python)"
-python -m venv .venv
+# poetry env use "$(which python)"
+# python -m venv .venv
 if [ "$1" = "static" ]; then
     poetry run python "$EXEC_DIR/celline/initializer/initialize.py" "${EXEC_DIR}" "${@}"
 else
