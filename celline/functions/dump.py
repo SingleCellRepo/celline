@@ -12,6 +12,7 @@ from celline.config import Config, Setting
 from celline.database import NCBI
 from celline.data.ncbi import SRR
 from celline.utils.thread import split_jobs
+from celline.utils.project import DirectoryManager
 import subprocess
 
 
@@ -52,28 +53,24 @@ class Dump(CellineFunction):
         """returns: Target GSM ID"""
         target_gsm: List[str] = []
         for gsm_id in NCBI.get_gsms():
-            root = (
-                f"{Config.PROJ_ROOT}/resources/{gsm_id}"
-            )
+            root = f"{Config.PROJ_ROOT}/resources/{gsm_id}"
             self.mkdir(
                 [
                     root,
                     f"{root}/raw",
                 ]
             )
-            # if len(os.listdir(f"{root}/raw")) == 0:
-            #     target_gsm.append(gsm_id)
-            # else:
-            #     print(
-            #         f"[Warning] Specified GSM ID ({gsm_id}) is already dumped.")
-            # TODO: Dump management system
-            target_gsm.append(gsm_id)
+            if DirectoryManager.is_dumped(gsm_id):
+                print(
+                    f"[WARNING] Specified GSM ID ({gsm_id}) is already dumped. Skip.")
+            else:
+                target_gsm.append(gsm_id)
         return target_gsm
 
     def on_call(self, args: Dict[str, DictionaryC[str, Optional[str]]]):
         self.options = args["options"]
         ct = datetime.datetime.now()
-        directory_time_str = ct.strftime('%Y%m%d%H%M%S')
+        directory_time_str = ct.strftime("%Y%m%d%H%M%S")
         target_gsms: List[str] = self.init_directory()
         job_directory = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{directory_time_str}"
         os.makedirs(job_directory, exist_ok=True)
@@ -92,13 +89,16 @@ class Dump(CellineFunction):
                     job_system = JobSystem.PBS
                     if len(splitted) != 2:
                         print(
-                            "[ERROR] PBS job shold called as PBS@<cluster_server_name>")
+                            "[ERROR] PBS job shold called as PBS@<cluster_server_name>"
+                        )
                         quit()
                     server_name = splitted[1]
                 else:
                     print(
                         "[ERROR] PBS job shold called as PBS@<cluster_server_name>")
                     quit()
+            elif "nohup" in job_cluster:
+                job_system = JobSystem.nohup
         __nthread = self.options["nthread"]
         if __nthread is None:
             print("[Warning] nthread will be 1 automatically")
@@ -123,7 +123,6 @@ class Dump(CellineFunction):
                 if srr.file_type == SRR.ScRun.FileType.Fastq:
                     cmd = f"cd {root}/raw && scfastq-dump {srr_id}"
                     sample_id = f"S{srrs.index(srr_id) + 1}"
-                    print(len(srr.sc_runs))
                     for run in srr.sc_runs:
                         dumped_name = f"{gsm}_{sample_id}_{run.lane.name}_{run.readtype.name}.fastq.gz"
                         raw_name = srr_id
@@ -143,38 +142,47 @@ class Dump(CellineFunction):
                     for run in srr.sc_runs:
                         srr.parent_gsm
                         cmds.append(
-                            f"cd {root}/raw && wget {run.cloud_path.path} -O {srr.id}.bam")
+                            f"cd {root}/raw && wget {run.cloud_path.path} -O {srr.id}.bam"
+                        )
 
         __base_job_num = 0
         cluster_num = 0
         for job in split_jobs(len(cmds), nthread):
             if job_system == JobSystem.PBS:
-                result_cmd = "".join(
-                    PBS(1, server_name, job_system.name, f"{log_dir}/cluster{cluster_num}.log").header) + "\n"
+                result_cmd = (
+                    "".join(
+                        PBS(
+                            1,
+                            server_name,
+                            job_system.name,
+                            f"{log_dir}/cluster{cluster_num}.log",
+                        ).header
+                    )
+                    + "\n"
+                )
             else:
                 result_cmd = ""
             if job != 0:
-                result_cmd += "\n".join(cmds[__base_job_num:__base_job_num+job])
+                result_cmd += "\n".join(
+                    cmds[__base_job_num: __base_job_num + job])
                 with open(f"{job_directory}/cluster{cluster_num}.sh", mode="w") as f:
                     f.write(result_cmd)
                 cluster_num += 1
             __base_job_num += job
-        if self.options["norun"] is not None:
+        if not self.options.ContainsKey("norun"):
             for target_cluster in range(cluster_num):
                 if job_system == JobSystem.default_bash:
                     subprocess.run(
-                        f"bash {job_directory}/cluster{target_cluster}.sh",
-                        shell=True
+                        f"bash {job_directory}/cluster{target_cluster}.sh", shell=True
                     )
                 elif job_system == JobSystem.nohup:
                     subprocess.run(
-                        f"nohup bash {job_directory}/cluster{target_cluster}.sh > {Config.PROJ_ROOT}/jobs/auto/0_dump/{directory_time_str}/__logs.log",
-                        shell=True
+                        f"nohup bash {job_directory}/cluster{target_cluster}.sh > {Config.PROJ_ROOT}/jobs/auto/0_dump/{directory_time_str}/__logs.log &",
+                        shell=True,
                     )
                 elif job_system == JobSystem.PBS:
                     subprocess.run(
-                        f"qsub {job_directory}/cluster{target_cluster}.sh",
-                        shell=True
+                        f"qsub {job_directory}/cluster{target_cluster}.sh", shell=True
                     )
                 else:
                     print("[ERROR] Unknown job system :(")

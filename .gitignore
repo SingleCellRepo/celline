@@ -6,3 +6,4 @@ poetry.lock
 DB/accessions.yaml
 __obsolete
 .venv
+node_modules

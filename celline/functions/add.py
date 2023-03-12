@@ -1,7 +1,8 @@
 from celline.functions._base import CellineFunction
 from celline.plugins.collections.generic import DictionaryC, ListC
 from typing import Optional, List, Dict
-from celline.database import NCBI
+from celline.database import NCBI, GSE, GSM
+from celline.data.files import append_accessions, append_runs, read_runs
 
 
 class Add(CellineFunction):
@@ -13,4 +14,11 @@ class Add(CellineFunction):
         id = options["req_1"]
         if id is not None:
             NCBI.add(id)
+            # result = NCBI.search("GSE")
+            # if id.startswith("GSE"):
+            #     gse: GSE = result
+            #     append_runs(gse.child_gsm_ids, "TEST")
+            # elif id.startswith("GSM"):
+            #     gsm: List[GSM] = result
+            #     append_runs(gse.child_gsm_ids)
         return

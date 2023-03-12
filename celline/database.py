@@ -20,7 +20,8 @@ class NCBI:
     def __from_gse(gse_id: str):
         """Fetch run data from GSE database"""
         gse = GSE.search(gse_id)
-        choices = [f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
+        choices = [
+            f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
         questions = [
             inquirer.Checkbox(
                 "target_gsms",
@@ -48,12 +49,12 @@ class NCBI:
                 ):
                     srr = SRR.search(target_srr_ids[srr_i])
                     srrs.append(srr)
+                append_runs(gsm_id, gsm.title)
             yamldata = {}
             yamldata["GSE"] = gse.to_dict()
             yamldata["GSM"] = [d.to_dict() for d in gsms]
             yamldata["SRR"] = [d.to_dict() for d in srrs]
             append_accessions(yamldata)
-            append_runs(gsm_ids)
         return gse
 
     @staticmethod
@@ -73,7 +74,7 @@ class NCBI:
         yamldata["GSM"] = [gsm.to_dict()]
         yamldata["SRR"] = [d.to_dict() for d in srrs]
         append_accessions(yamldata)
-        append_runs([gsm_id])
+        append_runs(gsm_id, gsm.title)
         return gsm
 
     @staticmethod
@@ -89,7 +90,8 @@ class NCBI:
                     target_gsm_ids = gsm_el.split(":")
                     start = int(target_gsm_ids[0].replace("GSM", ""))
                     end = int(target_gsm_ids[1].replace("GSM", "")) + 1
-                    gsm_ids.extend([f"GSM{d}" for d in list(range(start, end, 1))])
+                    gsm_ids.extend(
+                        [f"GSM{d}" for d in list(range(start, end, 1))])
                 else:
                     gsm_ids.append(gsm_el)
             for i in tqdm(range(len(gsm_ids)), desc="Fetching"):
@@ -109,7 +111,8 @@ class NCBI:
                     target_gsm_ids = gsm_el.split(":")
                     start = int(target_gsm_ids[0].replace("GSM", ""))
                     end = int(target_gsm_ids[1].replace("GSM", "")) + 1
-                    gsm_ids.extend([f"GSM{d}" for d in list(range(start, end, 1))])
+                    gsm_ids.extend(
+                        [f"GSM{d}" for d in list(range(start, end, 1))])
                 else:
                     gsm_ids.append(gsm_el)
             for i in tqdm(range(len(gsm_ids)), desc="Fetching"):
@@ -124,7 +127,8 @@ class NCBI:
         runs = {d.id: d for d in GSM.runs}
         result: Dict[str, GSM] = {}
         failed_gsm: List[str] = []
-        for gsm_id in read_runs():
+        target_runs_df = read_runs()
+        for gsm_id in target_runs_df["gsm_id"].to_list():
             if gsm_id not in runs.keys():
                 failed_gsm.append(gsm_id)
             else:

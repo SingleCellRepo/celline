@@ -25,7 +25,7 @@ class Config:
 class Setting:
     # model variables
     name: str
-    version: float
+    version: str
     wait_time: int
     r_path: str = ""
 
@@ -72,7 +72,7 @@ class Setting:
             quit()
         Setting.name = result["projname"]
         Setting.r_path = result["rpath"]
-        Setting.version = 0.01
+        Setting.version = "0.01"
         Setting.wait_time = 4
         Setting.flush()
         print("Completed.")

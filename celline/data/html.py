@@ -72,11 +72,16 @@ class HTMLStructure:
         data_df = pd.DataFrame(data=__append_target, columns=__header)
         results: ListC[HTMLStructure] = ListC[HTMLStructure]()
         for _, data in data_df.iterrows():
+            ftype = "Unknown"
+            if ".fastq" in data["Name"] or ".fq" in data["Name"]:
+                ftype = "fastq"
+            elif ".bam" in data["Name"]:
+                ftype = "bam"
             results.Add(
                 HTMLStructure(
                     filesize=data["Size"],  # type: ignore
                     cloud_path=data["Name"],  # type: ignore
-                    filetype=data["Type"],
+                    filetype=ftype,
                     spieces=spieces,
                     gsmid=gsmid,
                     srrid=srrid,

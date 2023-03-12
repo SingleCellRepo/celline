@@ -57,6 +57,7 @@ class SRR:
             __lane_id: str
 
             def __init__(self, lane_id: Optional[str] = None) -> None:
+                self.__lane_id = "Null"
                 if lane_id is not None:
                     self.__lane_id = lane_id
                 pass
@@ -268,7 +269,7 @@ class SRR:
                     id=d["id"],
                     cloud_path=SRR.ScRun.CloudPath(d["path"]),
                     filesize=SRR.ScRun.FileSize(d["size"]),
-                    lane=SRR.ScRun.Lane(d["readtype"]),
+                    lane=SRR.ScRun.Lane(d["lane_id"]),
                     readtype=SRR.ScRun.ReadType.from_string(d["readtype"]),
                 )
                 for d in dict[0]
@@ -353,7 +354,8 @@ class GSM:
             srx_id=target_gsm["SRA"][1],
             child_srr_ids=DB.gsm_to_srr(id)["run_accession"].to_list(),
             parent_gse_id=(
-                __result.query('accession.str.contains("GSE")', engine="python")
+                __result.query('accession.str.contains("GSE")',
+                               engine="python")
             ).to_dict()["accession"][0],
         )
 

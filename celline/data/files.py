@@ -1,10 +1,13 @@
+from __future__ import annotations
 from celline.config import Config
 import yaml
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 import os
+import pandas as pd
+from pprint import pprint
 
 
-def read_accessions() -> Dict[str, List[Dict]]:
+def read_accessions() -> Dict[str, Dict]:
     filepath = f"{Config.EXEC_ROOT}/DB/accessions.yaml"
     if os.path.exists(filepath):
         with open(filepath, mode="r") as f:
@@ -33,20 +36,24 @@ def append_accessions(accessions: Dict):
     write_accessions(existing)
 
 
-def read_runs() -> List[str]:
+def read_runs() -> pd.DataFrame:
     filepath = f"{Config.PROJ_ROOT}/runs.tsv"
     if os.path.exists(filepath):
-        with open(filepath, mode="r") as f:
-            return f.read().split("\n")
+        return pd.read_csv(filepath, sep="\t")
     else:
-        return []
+        return pd.DataFrame(columns=["gsm_id", "sample_name"])
 
 
-def append_runs(gsm_ids: List[str]):
+def append_runs(gsm_id: str, sample_name: str):
+    filepath = f"{Config.PROJ_ROOT}/runs.tsv"
     runs = read_runs()
-    for gsm_id in gsm_ids:
-        if gsm_id not in runs:
-            if gsm_id != "" or gsm_id != None:
-                runs.append(gsm_id)
-    with open(f"{Config.PROJ_ROOT}/runs.tsv", mode="w") as f:
-        f.write("\n".join(runs))
+    if runs.pipe(lambda df: df[df.gsm_id == gsm_id]).index.size == 0:
+        runs = pd.concat(
+            [
+                runs,
+                pd.DataFrame(
+                    index=[0], data={"gsm_id": gsm_id, "sample_name": sample_name}
+                )
+            ]
+        )
+    runs.set_index("gsm_id").to_csv(filepath, sep="\t")

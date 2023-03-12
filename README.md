@@ -51,6 +51,18 @@ git clone https://github.com/SingleCellRepo/celline.git
 make install
 ```
 
+### 3. Frontend installation.
+
+1. Install npm
+   see https://nodejs.org/ja/download/
+2. Install yarn
+   see https://classic.yarnpkg.com/lang/en/docs/install
+3. Install requrement
+
+```bash
+cd frontend && yarn install
+```
+
 Please install all requrements following CUI instruction.
 
 ## 👟 How to Use
