@@ -1,5 +1,4 @@
 <template>
-  <!-- <HelloWorld msg="Welcome to Your Vue.js + TypeScript App" /> -->
   <v-app :theme="theme.value">
     <Header class="fix_position"></Header>
     <v-tabs

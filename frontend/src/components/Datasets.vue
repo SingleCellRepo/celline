@@ -69,9 +69,10 @@
           >
             <v-checkbox
               v-model="selected_gsms"
-              :label="gsm.title"
+              :label="gsm.title + '(' + gsm.accession + ')'"
               :value="gsm.accession"
-            ></v-checkbox>
+            >
+            </v-checkbox>
           </div>
           <v-divider></v-divider>
           <v-card-actions>
@@ -170,7 +171,7 @@ export default class LeftPanel extends Vue {
         if (this.gses.length > 0 && this.selected == null) {
           this.selected = this.gses[0];
         }
-        const gsms = this.selected?.gsms.map((d) => d.accession);
+        const gsms = this.selected?.target_gsms.map((d) => d.accession);
         if (gsms != undefined) {
           this.selected_gsms = gsms;
         }

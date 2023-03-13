@@ -31,7 +31,7 @@ def addgsm():
             NCBI.add(id)
             return "SUCESS"
     finally:
-        return "SUCESS"
+        print("SUCESS")
 
 
 @app.route("/getgsm", methods=["GET"])
@@ -51,13 +51,13 @@ def get_child_gsm_in_gse():
                     })
             return target_gsmid
     finally:
-        return "SUCESS"
+        print("SUCESS")
 
 
 @app.route("/gses", methods=["GET"])
 def get_project_gses():
-    with open(f"{Config.EXEC_ROOT}/test.log", mode="w") as f:
-        f.writelines(FileManager.read_runs()["gsm_id"].to_list())
+    # with open(f"{Config.EXEC_ROOT}/test.log", mode="w") as f:
+    #     f.writelines(FileManager.read_runs()["gsm_id"].to_list())
     return json.dumps([{
         "runid": d.runid,
         "title": d.title,

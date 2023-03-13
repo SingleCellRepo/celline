@@ -73,6 +73,7 @@ for root, dirs, files in os.walk(top=f"{pwd}"):
             and (not ".venv" in target_file)
             and (not ".mypy_cache" in target_file)
             and (not "__pycache__" in target_file)
+            and (not "node_modules" in target_file)
         ):
             target_file = "/".join(target_file.split("/")[1:])
             all_files.append(target_file)
