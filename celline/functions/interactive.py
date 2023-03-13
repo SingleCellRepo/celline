@@ -30,9 +30,9 @@ class Interactive(CellineFunction):
                 f"python {Config.EXEC_ROOT}/celline/api/main.py {Config.EXEC_ROOT} {Config.PROJ_ROOT}",
                 stdout=subprocess.PIPE,
                 shell=True)
-            front_proc = subprocess.Popen(
-                f"cd {Config.EXEC_ROOT}/frontend && npm run serve",
-                stdout=subprocess.PIPE,
-                shell=True)
+            # front_proc = subprocess.Popen(
+            #     f"cd {Config.EXEC_ROOT}/frontend && npm run serve",
+            #     stdout=subprocess.PIPE,
+            #     shell=True)
 
             back_proc.communicate()

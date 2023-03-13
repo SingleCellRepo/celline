@@ -1,21 +1,21 @@
 from __future__ import annotations  # type: ignore
-from typing import List, Dict, Union, Optional, TYPE_CHECKING
+from typing import List, Dict, Union, Optional, TYPE_CHECKING, Any
 from pysradb.sraweb import SRAweb
 from requests_html import AsyncHTMLSession, HTMLResponse
 from celline.data.html import HTMLStructure
 from celline.plugins.collections.generic import ListC
 from celline.utils.type import ClassProperty
-from celline.data.files import read_accessions
+from celline.data.files import FileManager
 import inquirer
 import inquirer.themes as themes
 from tqdm import tqdm
-import asyncio
+from asyncio import AbstractEventLoop
 from celline.config import Config, Setting
 import yaml
 from enum import Enum
 import re
-import os
-import pprint
+import requests
+import xml.etree.ElementTree as ET
 
 DB = SRAweb()
 
@@ -99,14 +99,14 @@ class SRR:
 
             @property
             def lane_id(self) -> Optional[str]:
-                """Returns lane id"""
+                """Returns lane runid"""
                 if self.__lane_id == "Null":
                     return None
                 return self.__lane_id
 
             @property
             def name(self) -> str:
-                """Returns lane id as string"""
+                """Returns lane runid as string"""
                 return self.__lane_id
 
         class ReadType(Enum):
@@ -173,13 +173,13 @@ class SRR:
 
         def __init__(
             self,
-            id: str,
+            runid: str,
             cloud_path: CloudPath,
             filesize: FileSize,
             readtype: ReadType,
             lane: Lane,
         ):
-            self.id: str = id
+            self.runid: str = runid
             """SRR ID"""
             self.cloud_path: SRR.ScRun.CloudPath = cloud_path
             self.filesize: SRR.ScRun.FileSize = filesize
@@ -187,13 +187,13 @@ class SRR:
             self.lane: SRR.ScRun.Lane = lane
 
     def __init__(
-        self, id: str, parent_gsm: str, file_type: ScRun.FileType, runs: List[ScRun]
+        self, runid: str, parent_gsm: str, file_type: ScRun.FileType, runs: List[ScRun]
     ) -> None:
-        self.id: str = id
+
+        self.runid: str = runid
         self.parent_gsm: str = parent_gsm
         self.file_type: SRR.ScRun.FileType = file_type
         self.sc_runs: List[SRR.ScRun] = runs
-        pass
 
     @ClassProperty
     @classmethod
@@ -201,72 +201,103 @@ class SRR:
         srrs: List[SRR] = []
         acessions: Dict[str, List] = {}
         """SRRID: runs"""
-        raw_accessions = read_accessions()["SRR"]
-        for id in raw_accessions:
-            if id not in acessions:
-                acessions[id] = []
-            acessions[id].append(raw_accessions[id])
+        raw_accessions = FileManager.read_accessions()["SRR"]
+        for runid in raw_accessions:
+            if runid not in acessions:
+                acessions[runid] = []
+            acessions[runid].append(raw_accessions[runid])
         for target_id in acessions:
             srrs.append(SRR.from_dict(acessions[target_id]))
         return srrs
 
     @staticmethod
-    async def __fetch(sra_run_id: str):
-        def build_scrun(raw: HTMLStructure):
-            cloud_path = SRR.ScRun.CloudPath(raw.cloud_path)
-            filetype = SRR.ScRun.FileType.from_string(raw.filetype)
-            return SRR.ScRun(
-                id=sra_run_id,
-                cloud_path=SRR.ScRun.CloudPath(raw.cloud_path),
-                filesize=SRR.ScRun.FileSize.from_string(raw.filesize),
-                readtype=SRR.ScRun.ReadType.from_string(raw.read),
+    def fetch(sra_run_id: str):
+        def build_scrun(raw: Dict[str, Any]):
+            cloud_path = SRR.ScRun.CloudPath(raw["cloud_path"])
+            filetype = SRR.ScRun.FileType.from_string(raw["filetype"])
+            scr = SRR.ScRun(
+                runid=sra_run_id,
+                cloud_path=SRR.ScRun.CloudPath(raw["cloud_path"]),
+                filesize=SRR.ScRun.FileSize.from_string(f'{raw["filesize"]}B'),
+                readtype=SRR.ScRun.ReadType.from_string(raw["read_type"]),
                 lane=SRR.ScRun.Lane.auto(
                     filetype=filetype, cloud_file_name=cloud_path.name
                 ),
             )
+            return scr
 
-        session = AsyncHTMLSession()
-        response: HTMLResponse = await session.get(
-            f"https://trace.ncbi.nlm.nih.gov/Traces/index.html?view=run_browser&acc={sra_run_id}&display=data-access"
-        )  # type: ignore
-        await response.html.arender(
-            wait=Setting.wait_time / 2, sleep=int(Setting.wait_time / 2)
-        )
-        result = HTMLStructure.build(response).Values
-        if len(result) == 0:
-            print(f"[ERROR] Could not find Run ID {sra_run_id}")
-            quit()
-        strct = result[0]
+        url = f"https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={sra_run_id}"
+        tree = ET.fromstring(requests.get(url).content.decode())
+        member = tree.find("RUN/Pool/Member")
+        gsm_id = ""
+        organism = ""
+        if member is not None:
+            gsm_id = member.attrib["sample_name"]
+            organism = member.attrib["organism"]
+        results: List[Dict[str, Any]] = []
+
+        files = tree.find("RUN/SRAFiles")
+        if files is not None:
+            for f in files:
+                if f.attrib["supertype"] == "Original":
+                    __alternatives = f.find("Alternatives")
+                    cloud_path = ""
+                    if __alternatives is not None:
+                        cloud_path = __alternatives.attrib["url"]
+                    filesize = 0
+                    if f is not None:
+                        filesize = f.attrib["size"]
+                    ftype = "Unknown"
+                    if ".fastq" in cloud_path or ".fq" in cloud_path:
+                        ftype = "fastq"
+                    elif ".bam" in cloud_path:
+                        ftype = "bam"
+                    results.append(
+                        {
+                            "cloud_path": cloud_path,
+                            "filesize": filesize,
+                            "read_type": "Unknown",
+                            "filetype": ftype,
+                            "gsm_id": gsm_id
+                        }
+                    )
+
+        if len(results) == 0:
+            raise NameError(f"[ERROR] Could not find Run ID {sra_run_id}")
+        strct = results[0]
         if strct is None:
-            print(f"[ERROR] Could not find Run ID {sra_run_id}")
-            quit()
-        return SRR(
-            id=sra_run_id,
-            parent_gsm=strct.gsmid,
-            file_type=SRR.ScRun.FileType.from_string(strct.filetype),
-            runs=[build_scrun(run) for run in result],
+            raise KeyError(f"[ERROR] Could not find Run ID {sra_run_id}")
+        runs = [build_scrun(run) for run in results]
+        ft = SRR.ScRun.FileType.from_string(strct["filetype"])
+        srr = SRR(
+            runid=sra_run_id,
+            parent_gsm=strct["gsm_id"],
+            file_type=ft,
+            runs=runs,
         )
+        return srr
 
     @staticmethod
-    def search(id: str) -> SRR:
+    def search(runid: str) -> SRR:
         for srr in SRR.runs:
-            if srr.id == id:
+            if srr.runid == runid:
                 return srr
-        return asyncio.get_event_loop().run_until_complete(SRR.__fetch(id))
+        result = SRR.fetch(runid)
+        return result
 
     @staticmethod
     def from_dict(dict: List[Dict]) -> SRR:
         if len(dict) == 0:
             print("[ERROR] Could not find SRR.")
             quit()
-        id = dict[0][0]["id"]
+        runid = dict[0][0]["runid"]
         srr = SRR(
-            id=id,
+            runid=runid,
             parent_gsm=dict[0][0]["parent_gsm"],
             file_type=SRR.ScRun.FileType.from_string(dict[0][0]["filetype"]),
             runs=[
                 SRR.ScRun(
-                    id=d["id"],
+                    runid=d["runid"],
                     cloud_path=SRR.ScRun.CloudPath(d["path"]),
                     filesize=SRR.ScRun.FileSize(d["size"]),
                     lane=SRR.ScRun.Lane(d["lane_id"]),
@@ -282,7 +313,7 @@ class SRR:
         for run in self.sc_runs:
             result.append(
                 {
-                    "id": self.id,
+                    "runid": self.runid,
                     "path": run.cloud_path.path,
                     "size": f"{run.filesize.sizeGB}G",
                     "filetype": self.file_type.name,
@@ -297,7 +328,7 @@ class SRR:
 class GSM:
     def __init__(
         self,
-        id: str,
+        runid: str,
         title: str,
         summary: str,
         species: str,
@@ -306,7 +337,7 @@ class GSM:
         child_srr_ids: List[str],
         parent_gse_id: str,
     ):
-        self.id: str = id
+        self.runid: str = runid
         """GSE ID"""
         self.title: str = title
         """Title name"""
@@ -327,32 +358,32 @@ class GSM:
     @classmethod
     def runs(cls):
         gsms: List[GSM] = []
-        raw_gsms = read_accessions()["GSM"]
+        raw_gsms = FileManager.read_accessions()["GSM"]
         for _id in raw_gsms:
             gsms.append(GSM.from_dict(raw_gsms[_id]))
         return gsms
 
     @staticmethod
-    def search(id: str):
-        if not id.startswith("GSM"):
+    def search(runid: str):
+        if not runid.startswith("GSM"):
             print("[ERROR] Given ID is not a valid GSM ID.")
             quit()
         for gsm in GSM.runs:
-            if gsm.id == id:
+            if gsm.runid == runid:
                 return gsm
-        __result = DB.fetch_gds_results(id)
+        __result = DB.fetch_gds_results(runid)
         if __result is None:
             print("[ERROR] Could not find target GSM data.")
             quit()
-        target_gsm = (__result.query(f'accession == "{id}"')).to_dict()
+        target_gsm = (__result.query(f'accession == "{runid}"')).to_dict()
         return GSM(
-            id=target_gsm["accession"][1],
+            runid=target_gsm["accession"][1],
             title=target_gsm["title"][1],
             summary=target_gsm["summary"][1],
             species=target_gsm["taxon"][1],
             raw_link=target_gsm["ftplink"][1],
             srx_id=target_gsm["SRA"][1],
-            child_srr_ids=DB.gsm_to_srr(id)["run_accession"].to_list(),
+            child_srr_ids=DB.gsm_to_srr(runid)["run_accession"].to_list(),
             parent_gse_id=(
                 __result.query('accession.str.contains("GSE")',
                                engine="python")
@@ -362,7 +393,7 @@ class GSM:
     @staticmethod
     def from_dict(dict: Dict):
         return GSM(
-            id=dict["id"],
+            runid=dict["runid"],
             title=dict["title"],
             summary=dict["summary"],
             species=dict["species"],
@@ -374,7 +405,7 @@ class GSM:
 
     def to_dict(self) -> Dict[str, Union[str, List[str]]]:
         return {
-            "id": self.id,
+            "runid": self.runid,
             "title": self.title,
             "summary": self.summary,
             "species": self.species,
@@ -388,7 +419,7 @@ class GSM:
 class GSE:
     def __init__(
         self,
-        id: str,
+        runid: str,
         title: str,
         summary: str,
         species: str,
@@ -397,7 +428,7 @@ class GSE:
         srp_id: str,
         child_gsm_ids: List[Dict[str, str]],
     ):
-        self.id: str = id
+        self.runid: str = runid
         """GSE ID"""
         self.title: str = title
         """Title name"""
@@ -418,29 +449,29 @@ class GSE:
     @classmethod
     def runs(cls):
         gses: List[GSE] = []
-        raw_gses = read_accessions()["GSE"]
+        raw_gses = FileManager.read_accessions()["GSE"]
         for _id in raw_gses:
             gses.append(GSE.from_dict(raw_gses[_id]))
         return gses
 
     @staticmethod
-    def search(id: str):
-        if not id.startswith("GSE"):
+    def search(runid: str):
+        if not runid.startswith("GSE"):
             print("[ERROR] Given ID is not a valid GSE ID.")
             quit()
         for gse in GSE.runs:
-            if gse.id == id:
+            if gse.runid == runid:
                 return gse
-        __result = DB.fetch_gds_results(id)
+        __result = DB.fetch_gds_results(runid)
         if __result is None:
             print("[ERROR] Could not find target GSE data.")
             quit()
-        target_gse = __result.query(f'accession == "{id}"')
+        target_gse = __result.query(f'accession == "{runid}"')
         if target_gse.empty:
             print("[ERROR] Target GSE is not exist or empty.")
             quit()
         return GSE(
-            id=target_gse.pipe(lambda d: d["accession"])[0],
+            runid=target_gse.pipe(lambda d: d["accession"])[0],
             title=target_gse.pipe(lambda d: d["title"])[0],
             summary=target_gse.pipe(lambda d: d["summary"])[0],
             species=target_gse.pipe(lambda d: d["taxon"])[0],
@@ -453,7 +484,7 @@ class GSE:
     @staticmethod
     def from_dict(dict: Dict):
         return GSE(
-            id=dict["id"],
+            runid=dict["runid"],
             title=dict["title"],
             summary=dict["summary"],
             species=dict["species"],
@@ -465,7 +496,7 @@ class GSE:
 
     def to_dict(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
         return {
-            "id": self.id,
+            "runid": self.runid,
             "title": self.title,
             "summary": self.summary,
             "species": self.species,
