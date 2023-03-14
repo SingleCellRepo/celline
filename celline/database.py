@@ -17,29 +17,53 @@ class NCBI:
     """
 
     @staticmethod
-    def __from_gse(gse_id: str):
+    def __from_gse(gse_id: str, interactive: bool = False):
         """Fetch run data from GSE database"""
         gse = GSE.search(gse_id)
-        choices = [
-            f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
-        questions = [
-            inquirer.Checkbox(
-                "target_gsms",
-                message="Choose dump target GSM IDs",
-                choices=choices,
-                carousel=True,
+        if isinstance(gse, str):
+            return gse
+        if interactive:
+            choices = [
+                f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
+            questions = [
+                inquirer.Checkbox(
+                    "target_gsms",
+                    message="Choose dump target GSM IDs",
+                    choices=choices,
+                    carousel=True,
+                )
+            ]
+            answers = inquirer.prompt(
+                questions, theme=themes.GreenPassion(), raise_keyboard_interrupt=True
             )
-        ]
-        answers = inquirer.prompt(
-            questions, theme=themes.GreenPassion(), raise_keyboard_interrupt=True
-        )
-        if answers is not None:
+            if answers is not None:
+                gsms: List[GSM] = []
+                gsm_ids: List[str] = []
+                srrs: List[SRR] = []
+                target_gsm_ids: List[str] = answers["target_gsms"]
+                for gsm_i in tqdm(range(len(target_gsm_ids)), desc="Fetching GSM"):
+                    gsm_id = target_gsm_ids[gsm_i].split("(")[0]
+                    gsm_ids.append(gsm_id)
+                    gsm = GSM.search(gsm_id)
+                    gsms.append(gsm)
+                    target_srr_ids = gsm.child_srr_ids
+                    for srr_i in tqdm(
+                        range(len(target_srr_ids)), desc="Fetching SRR", leave=False
+                    ):
+                        srr = SRR.search(target_srr_ids[srr_i])
+                        srrs.append(srr)
+                    FileManager.append_runs(gsm_id, gsm.title)
+                yamldata = {}
+                yamldata["GSE"] = gse.to_dict()
+                yamldata["GSM"] = [d.to_dict() for d in gsms]
+                yamldata["SRR"] = [d.to_dict() for d in srrs]
+                FileManager.append_accessions(yamldata)
+        else:
             gsms: List[GSM] = []
             gsm_ids: List[str] = []
             srrs: List[SRR] = []
-            target_gsm_ids: List[str] = answers["target_gsms"]
-            for gsm_i in tqdm(range(len(target_gsm_ids)), desc="Fetching GSM"):
-                gsm_id = target_gsm_ids[gsm_i].split("(")[0]
+            for gsm_i in tqdm(range(len(gse.child_gsm_ids)), desc="Fetching GSM"):
+                gsm_id = gse.child_gsm_ids[gsm_i]["accession"]
                 gsm_ids.append(gsm_id)
                 gsm = GSM.search(gsm_id)
                 gsms.append(gsm)
@@ -47,7 +71,7 @@ class NCBI:
                 for srr_i in tqdm(
                     range(len(target_srr_ids)), desc="Fetching SRR", leave=False
                 ):
-                    srr = SRR.search(target_srr_ids[srr_i])
+                    srr = SRR.search(target_srr_ids[srr_i], ignoreerror=True)
                     srrs.append(srr)
                 FileManager.append_runs(gsm_id, gsm.title)
             yamldata = {}
@@ -55,6 +79,7 @@ class NCBI:
             yamldata["GSM"] = [d.to_dict() for d in gsms]
             yamldata["SRR"] = [d.to_dict() for d in srrs]
             FileManager.append_accessions(yamldata)
+            FileManager.append_runs(gsms[0].runid, gsms[0].title)
         return gse
 
     @staticmethod
@@ -65,9 +90,17 @@ class NCBI:
         gses: List[GSE] = []
         if verbose:
             for _ in tqdm(range(len(gse_id)), desc="Fetching GSE"):
-                gses.append(GSE.search(gse_id))
+                __gse = GSE.search(gse_id)
+                if isinstance(__gse, str):
+                    print(f"[ERROR] {__gse}")
+                else:
+                    gses.append(__gse)
         else:
-            gses.append(GSE.search(gse_id))
+            __gse = GSE.search(gse_id)
+            if isinstance(__gse, str):
+                print(f"[ERROR] {__gse}")
+            else:
+                gses.append(__gse)
         srr_ids = gsm.child_srr_ids
         srrs: List[SRR] = []
         if verbose:
@@ -87,10 +120,10 @@ class NCBI:
         return gsm
 
     @staticmethod
-    def add(runid: str, verbose=True):
+    def add(runid: str, verbose=True, interactive=False):
         """Resolve a given runid (SRR, GSM, GSE ids) to add to the run database"""
         if runid.startswith("GSE"):
-            NCBI.__from_gse(runid)
+            NCBI.__from_gse(runid, interactive)
 
         elif runid.startswith("GSM"):
             gsm_list = runid.split(",")

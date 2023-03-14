@@ -72,6 +72,9 @@ class Dump(CellineFunction):
         ct = datetime.datetime.now()
         directory_time_str = ct.strftime("%Y%m%d%H%M%S")
         target_gsms: List[str] = self.init_directory()
+        target_gsms = str(self.options["gsm"]).split(",")
+        with open(f"{Config.PROJ_ROOT}/log.log", mode="a") as f:
+            f.write(f"\n{target_gsms}")
         job_directory = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{directory_time_str}"
         os.makedirs(job_directory, exist_ok=True)
         header: str = ""
@@ -142,7 +145,7 @@ class Dump(CellineFunction):
                     for run in srr.sc_runs:
                         srr.parent_gsm
                         cmds.append(
-                            f"cd {root}/raw && wget {run.cloud_path.path} -O {srr.id}.bam"
+                            f"cd {root}/raw && wget {run.cloud_path.path} -O {srr.runid}.bam"
                         )
 
         __base_job_num = 0

@@ -211,7 +211,7 @@ class SRR:
         return srrs
 
     @staticmethod
-    def fetch(sra_run_id: str):
+    def fetch(sra_run_id: str, ignoreerror=False):
         def build_scrun(raw: Dict[str, Any]):
             cloud_path = SRR.ScRun.CloudPath(raw["cloud_path"])
             filetype = SRR.ScRun.FileType.from_string(raw["filetype"])
@@ -221,7 +221,8 @@ class SRR:
                 filesize=SRR.ScRun.FileSize.from_string(f'{raw["filesize"]}B'),
                 readtype=SRR.ScRun.ReadType.from_string(raw["read_type"]),
                 lane=SRR.ScRun.Lane.auto(
-                    filetype=filetype, cloud_file_name=cloud_path.name
+                    filetype=filetype, cloud_file_name=cloud_path.name,
+                    ignore_warning=ignoreerror
                 ),
             )
             return scr
@@ -278,11 +279,11 @@ class SRR:
         return srr
 
     @staticmethod
-    def search(runid: str) -> SRR:
+    def search(runid: str, ignoreerror=False) -> SRR:
         for srr in SRR.runs:
             if srr.runid == runid:
                 return srr
-        result = SRR.fetch(runid)
+        result = SRR.fetch(runid, ignoreerror=ignoreerror)
         return result
 
     @staticmethod
@@ -422,7 +423,7 @@ class GSE:
         runid: str,
         title: str,
         summary: str,
-        species: str,
+        species: List[str],
         raw_link: str,
         projna_id: str,
         srp_id: str,
@@ -434,7 +435,7 @@ class GSE:
         """Title name"""
         self.summary: str = summary
         """Experiment summary"""
-        self.species: str = species
+        self.species: List[str] = species
         """Species name"""
         self.raw_link: str = raw_link
         """Raw FTP link"""
@@ -455,8 +456,10 @@ class GSE:
         return gses
 
     @staticmethod
-    def search(runid: str):
+    def search(runid: str, return_error: bool = False):
         if not runid.startswith("GSE"):
+            if return_error:
+                return "Given ID is not a valid GSE ID."
             print("[ERROR] Given ID is not a valid GSE ID.")
             quit()
         for gse in GSE.runs:
@@ -464,17 +467,21 @@ class GSE:
                 return gse
         __result = DB.fetch_gds_results(runid)
         if __result is None:
+            if return_error:
+                return "Could not find target GSE data."
             print("[ERROR] Could not find target GSE data.")
             quit()
         target_gse = __result.query(f'accession == "{runid}"')
         if target_gse.empty:
+            if return_error:
+                return "Target GSE is not exist or empty."
             print("[ERROR] Target GSE is not exist or empty.")
             quit()
         return GSE(
             runid=target_gse.pipe(lambda d: d["accession"])[0],
             title=target_gse.pipe(lambda d: d["title"])[0],
             summary=target_gse.pipe(lambda d: d["summary"])[0],
-            species=target_gse.pipe(lambda d: d["taxon"])[0],
+            species=target_gse.pipe(lambda d: d["taxon"])[0].split("; "),
             raw_link=target_gse.pipe(lambda d: d["ftplink"])[0],
             projna_id=target_gse.pipe(lambda d: d["bioproject"])[0],
             srp_id=target_gse.pipe(lambda d: d["SRA"])[0],
@@ -494,7 +501,7 @@ class GSE:
             child_gsm_ids=dict["child_gsm_ids"],
         )
 
-    def to_dict(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
+    def to_dict(self) -> Dict[str, Union[str, List[str], List[Dict[str, str]]]]:
         return {
             "runid": self.runid,
             "title": self.title,
