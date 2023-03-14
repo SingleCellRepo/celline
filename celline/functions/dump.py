@@ -72,7 +72,8 @@ class Dump(CellineFunction):
         ct = datetime.datetime.now()
         directory_time_str = ct.strftime("%Y%m%d%H%M%S")
         target_gsms: List[str] = self.init_directory()
-        target_gsms = str(self.options["gsm"]).split(",")
+        if self.options["gsm"] is not None:
+            target_gsms = str(self.options["gsm"]).split(",")
         with open(f"{Config.PROJ_ROOT}/log.log", mode="a") as f:
             f.write(f"\n{target_gsms}")
         job_directory = f"{Config.PROJ_ROOT}/jobs/auto/0_dump/{directory_time_str}"

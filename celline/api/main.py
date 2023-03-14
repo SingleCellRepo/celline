@@ -197,7 +197,8 @@ def dump():
             options = DictionaryC[str, Optional[str]]()
             options.Add("gsm", ",".join([d["accession"]
                         for d in target_gse.child_gsm_ids]))
-            options.Add("nthread", "1")
+            options.Add("nthread", "10")
+            options.Add("job", "PBS@yuri")
             options.Add("norun", "")
             Dump().on_call(
                 args={
