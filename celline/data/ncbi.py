@@ -249,15 +249,24 @@ class SRR:
                     if f is not None:
                         filesize = f.attrib["size"]
                     ftype = "Unknown"
+                    read_type = SRR.ScRun.ReadType.Unknown
                     if ".fastq" in cloud_path or ".fq" in cloud_path:
                         ftype = "fastq"
+                        __readtype = re.search(r'_[R,I]\d', cloud_path)
+                        if __readtype is None:
+                            read_type = SRR.ScRun.ReadType.Unknown
+                        else:
+                            read_type = SRR.ScRun.ReadType.from_string(
+                                __readtype.group().replace("_", "")).name
+
                     elif ".bam" in cloud_path:
                         ftype = "bam"
+
                     results.append(
                         {
                             "cloud_path": cloud_path,
                             "filesize": filesize,
-                            "read_type": "Unknown",
+                            "read_type": read_type,
                             "filetype": ftype,
                             "gsm_id": gsm_id
                         }
