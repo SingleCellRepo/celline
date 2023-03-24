@@ -8,7 +8,13 @@
         transition="dialog-bottom-transition"
       >
         <template v-slot:activator="{ props }">
-          <v-btn id="icon" color="blue-grey" icon="mdi-cog" v-bind="props">
+          <v-btn
+            id="icon"
+            color="blue-grey"
+            icon="mdi-cog"
+            v-bind="props"
+            @click="connetion_check"
+          >
           </v-btn>
         </template>
         <v-card>
@@ -18,9 +24,6 @@
             </v-btn>
             <v-toolbar-title>Settings</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-toolbar-items>
-              <v-btn variant="text" @click="dialog = false"> Save </v-btn>
-            </v-toolbar-items>
           </v-toolbar>
           <div id="contents">
             <div class="text-h5">Remote Servers</div>
@@ -31,6 +34,27 @@
                 @click="on_edit_server(server.name)"
               >
                 <v-expansion-panel-title>
+                  <v-icon
+                    icon="mdi-check-circle"
+                    color="green-darken-2"
+                    v-if="connections[server.name] == 'sucess'"
+                  ></v-icon>
+                  <v-progress-circular
+                    indeterminate
+                    color="blue-darken-2"
+                    :width="3"
+                    v-if="connections[server.name] == 'connecting'"
+                  ></v-progress-circular>
+                  <v-icon
+                    icon="mdi-alert-circle"
+                    color="error"
+                    v-if="connections[server.name] == 'failed'"
+                  ></v-icon>
+                  <span id="instructions"
+                    >{{ server.name }} ({{ server.ip }})</span
+                  >
+                </v-expansion-panel-title>
+                <v-expansion-panel-text v-if="current_server != null">
                   <v-btn
                     @click.stop="delete_server(server.name)"
                     icon="mdi-trash-can-outline"
@@ -38,12 +62,8 @@
                     variant="flat"
                     rounded="lg"
                     color="error"
-                  ></v-btn>
-                  <span id="instructions"
-                    >{{ server.name }} ({{ server.ip }})</span
-                  >
-                </v-expansion-panel-title>
-                <v-expansion-panel-text v-if="current_server != null">
+                  ></v-btn
+                  >&nbsp;Delete
                   <v-text-field
                     label="IP address"
                     :placeholder="current_server.ip"
@@ -74,7 +94,61 @@
               </v-expansion-panel>
             </v-expansion-panels>
             <v-col>
-              <v-btn icon="mdi-plus" color="info" id="add_new_server"></v-btn>
+              <v-row justify="center">
+                <v-dialog v-model="add_new_trigger" width="800">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      icon="mdi-plus"
+                      color="info"
+                      id="add_new_server"
+                      v-bind="props"
+                    ></v-btn>
+                  </template>
+                  <v-card>
+                    <v-card-title>Add new server</v-card-title>
+                    <v-card-item
+                      ><v-text-field
+                        label="Server name"
+                        v-model="new_server_name"
+                        :rules="new_server_name_rule"
+                      ></v-text-field>
+                      <v-text-field
+                        label="IP address"
+                        v-model="new_server_ip"
+                      ></v-text-field>
+                      <v-text-field
+                        label="Username"
+                        v-model="new_server_uname"
+                      ></v-text-field>
+                      <v-text-field
+                        label="Port"
+                        v-model="new_server_port"
+                      ></v-text-field>
+                      <v-text-field
+                        label="Secret Key Path"
+                        v-model="new_server_secretkey_path"
+                      ></v-text-field>
+                    </v-card-item>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn
+                        color="green-darken-1"
+                        variant="text"
+                        @click="add_new_trigger = false"
+                      >
+                        Cancel
+                      </v-btn>
+                      <v-btn
+                        color="green-darken-1"
+                        variant="text"
+                        @click="add_new_server"
+                      >
+                        Add
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+              </v-row>
             </v-col>
           </div>
         </v-card>
@@ -84,18 +158,31 @@
 </template>
 
 <script lang="ts">
+import { Server } from "src/types";
 import axios from "axios";
 import { Options, Vue } from "vue-class-component";
-type Server = {
+type ServerStatus = {
   name: string;
-  ip: string;
-  uname: string;
-  secretkey_path: string;
-  port: number;
+  server: Server;
+  connection_testing: boolean;
+  sucess_connection: boolean;
 };
-
 export default class Settings extends Vue {
   dialog = false;
+  add_new_trigger = false;
+  new_server_name = "";
+  new_server_ip = "";
+  new_server_uname = "";
+  new_server_secretkey_path = "";
+  new_server_port = 22;
+  new_server_name_rule = [
+    (value: string) => {
+      if (this.is_exist(value)) {
+        return true;
+      }
+      return `${value} is already used as server name`;
+    },
+  ];
   public server_lists: Server[] = [];
   public current_server: Server | null = null;
   public secretkey_rule = [
@@ -106,15 +193,23 @@ export default class Settings extends Vue {
     },
   ];
   created() {
-    this.update_server_data();
+    this.update_server_data((status) => {
+      if (status) {
+        this.connetion_check();
+      }
+    });
   }
-  private update_server_data() {
+  private update_server_data(
+    callback: (status: boolean) => void = () => console.log("")
+  ) {
     this.server_lists = [];
     axios.get(`http://localhost:8000/servers`).then((response) => {
       if (typeof response.data === "string") {
         console.error(`Server fetch error: ${response.data}`);
+        callback(false);
       } else {
         this.server_lists = response.data;
+        callback(true);
       }
     });
   }
@@ -157,6 +252,48 @@ export default class Settings extends Vue {
         }
       });
     this.update_server_data();
+  }
+  public is_exist(name: string) {
+    return this.server_lists.find((d) => d.name == name) == undefined;
+  }
+  public add_new_server() {
+    const server: Server = {
+      name: this.new_server_name,
+      ip: this.new_server_ip,
+      uname: this.new_server_uname,
+      secretkey_path: this.new_server_secretkey_path,
+      port: this.new_server_port,
+    };
+    axios
+      .post(`http://localhost:8000/servers?id=${this.new_server_name}`, server)
+      .then((response) => {
+        console.log(response);
+        this.update_server_data();
+        this.add_new_trigger = false;
+      });
+  }
+  connections: { [name: string]: string } = {};
+  connection_error = "";
+  public connetion_check() {
+    this.connections = {};
+    this.servers.forEach((server) => {
+      this.connections[server.name] = "connecting";
+      axios
+        .get(`http://localhost:8000/server_status?id=${server.name}`)
+        .then((response) => {
+          if (response.data) {
+            console.log(`OK: ${server.name}`);
+            this.connections[server.name] = "sucess";
+          } else {
+            this.connections[server.name] = "failed";
+            this.connection_error = response.data;
+          }
+        })
+        .catch((reason) => {
+          this.connections[server.name] = "failed";
+          this.connection_error = reason;
+        });
+    });
   }
 }
 </script>

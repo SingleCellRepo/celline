@@ -10,7 +10,7 @@ import json
 from typing import Optional
 import pandas as pd
 from typing import List
-from celline.server.connection import RemoteServer
+from celline.server.connection import RemoteServer, ServerConnection
 
 
 exec_path = sys.argv[1]
@@ -263,6 +263,29 @@ def servers():
                     return "Could not delete target server"
         else:
             return "Unknown request"
+    finally:
+        print("SUCESS")
+
+
+@app.route("/server_status", methods=["GET"])
+def server_status():
+    try:
+        req = request.args
+        id = req.get("id")
+        if id is None:
+            return "ID_UNKNOWN"
+        if not RemoteServer.contains(id):
+            return f"Unknown server: {id}"
+        server = RemoteServer(id)
+        try:
+            with ServerConnection(server) as connection:
+                _, stdout, stderr = connection.execute("echo Hello world")
+                if str(stdout) == "Hello world":
+                    return str(True)
+                else:
+                    return str(False)
+        except TimeoutError:
+            return str(False)
     finally:
         print("SUCESS")
 

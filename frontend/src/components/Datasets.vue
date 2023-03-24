@@ -60,99 +60,7 @@
     >
       Delete
     </v-btn>
-    <div id="download" class="header_instruction_button_inline">
-      <v-dialog
-        v-model="donwload_dialog"
-        fullscreen
-        :scrim="false"
-        transition="dialog-bottom-transition"
-      >
-        <template v-slot:activator="{ props }">
-          <v-btn
-            color="blue-grey"
-            prepend-icon="mdi-download"
-            class="header_instruction_button"
-            dark
-            v-bind="props"
-          >
-            Download
-          </v-btn>
-        </template>
-        <v-card>
-          <v-toolbar dark color="blue-grey">
-            <v-btn icon dark @click="dialog = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-            <v-toolbar-title
-              >Data download of {{ selected?.runid }}</v-toolbar-title
-            >
-            <v-spacer></v-spacer>
-            <v-toolbar-items>
-              <v-btn variant="text" @click="dialog = false"> Save </v-btn>
-            </v-toolbar-items>
-          </v-toolbar>
-          <v-list lines="one" subheader>
-            <v-list-subheader>Download Settings</v-list-subheader>
-            <v-list-item
-              title="Download System"
-              subtitle="Select the system you wish to use for downloading this data."
-            >
-              <v-list-item>
-                <v-select
-                  v-model="dump_strategy"
-                  :items="dump_strategies"
-                  label="Download strategy"
-                  required
-                ></v-select>
-                <v-row>
-                  <v-select
-                    v-model="dump_strategy_server.jobsystem"
-                    :items="['PBS']"
-                    label="Job System"
-                    required
-                    :disabled="dump_strategy != 'Job system'"
-                  ></v-select>
-                  <v-text-field
-                    v-model="dump_strategy_server.cluster_name"
-                    label="Cluster server name"
-                    required
-                    :disabled="dump_strategy != 'Job system'"
-                  ></v-text-field>
-                </v-row>
-                <v-text-field
-                  v-model="dump_strategy_nthread"
-                  label="nthread"
-                  :rules="dump_strategy_nthread_rule"
-                ></v-text-field>
-              </v-list-item>
-            </v-list-item>
-            <v-list-item
-              title="Download Target File Type"
-              subtitle="Target file type"
-            >
-              <v-select
-                v-model="dump_target_filetype"
-                :items="dump_target_filetypes"
-                label="Target file type strategy"
-                required
-              ></v-select>
-            </v-list-item>
-          </v-list>
-          <v-divider></v-divider>
-
-          <div id="dump_start_btn">
-            <v-btn
-              color="blue-grey"
-              prepend-icon="mdi-cloud-upload"
-              @click="dump"
-            >
-              Start Download
-            </v-btn>
-          </div>
-        </v-card>
-      </v-dialog>
-    </div>
-
+    <Download :selected="selected"></Download>
     <v-expansion-panels id="panel">
       <v-expansion-panel
         v-for="data in selected?.target_gsms"
@@ -263,7 +171,7 @@
         id="add_root_button"
         :rounded="0"
       >
-        Add New
+        Add Project
       </v-btn>
     </template>
     <v-card>
@@ -521,28 +429,7 @@ export default class LeftPanel extends Vue {
       this.srrs_in_selected_gsm = response.data;
     });
   }
-  dump_strategies: string[] = [
-    "Job system",
-    "Nohup",
-    "Direct download (NOT Recommended)",
-  ];
-  dump_strategy = this.dump_strategies[0];
-  dump_strategy_server: {
-    jobsystem: string;
-    cluster_name: string;
-  } = {
-    jobsystem: "PBS",
-    cluster_name: "",
-  };
-  dump_strategy_nthread = 1;
-  dump_strategy_nthread_rule = [
-    (value: number) => {
-      if (value > 0) return true;
-      return "Please set integer number";
-    },
-  ];
-  dump_target_filetypes = ["raw type (e.g fastq, bam)", "processed data"];
-  dump_target_filetype = this.dump_target_filetypes[0];
+
   public dump() {
     axios
       .get(`http://localhost:8000/dump?id=${this.selected?.runid}`)
