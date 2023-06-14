@@ -2,6 +2,7 @@ import inquirer
 import inquirer.themes as themes
 from celline.data.ncbi import GSE, GSM, SRR
 import asyncio
+
 # from celline.data.constructed import CellineDataStructure
 from typing import List, Dict
 from tqdm import tqdm
@@ -23,8 +24,7 @@ class NCBI:
         if isinstance(gse, str):
             return gse
         if interactive:
-            choices = [
-                f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
+            choices = [f"{d['accession']}({d['title']})" for d in gse.child_gsm_ids]
             questions = [
                 inquirer.Checkbox(
                     "target_gsms",
@@ -104,8 +104,7 @@ class NCBI:
         srr_ids = gsm.child_srr_ids
         srrs: List[SRR] = []
         if verbose:
-            iterator = tqdm(range(len(srr_ids)),
-                            desc="Fetching SRR", leave=False)
+            iterator = tqdm(range(len(srr_ids)), desc="Fetching SRR", leave=False)
         else:
             iterator = range(len(srr_ids))
         for srr_i in iterator:
@@ -133,8 +132,7 @@ class NCBI:
                     target_gsm_ids = gsm_el.split(":")
                     start = int(target_gsm_ids[0].replace("GSM", ""))
                     end = int(target_gsm_ids[1].replace("GSM", "")) + 1
-                    gsm_ids.extend(
-                        [f"GSM{d}" for d in list(range(start, end, 1))])
+                    gsm_ids.extend([f"GSM{d}" for d in list(range(start, end, 1))])
                 else:
                     gsm_ids.append(gsm_el)
             if verbose:

@@ -57,7 +57,7 @@ class FileManager:
                     runs,
                     pd.DataFrame(
                         index=[0], data={"gsm_id": gsm_id, "sample_name": sample_name}
-                    )
+                    ),
                 ]
             )
         runs.set_index("gsm_id").to_csv(filepath, sep="\t")

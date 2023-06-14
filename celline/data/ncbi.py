@@ -189,7 +189,6 @@ class SRR:
     def __init__(
         self, runid: str, parent_gsm: str, file_type: ScRun.FileType, runs: List[ScRun]
     ) -> None:
-
         self.runid: str = runid
         self.parent_gsm: str = parent_gsm
         self.file_type: SRR.ScRun.FileType = file_type
@@ -221,13 +220,16 @@ class SRR:
                 filesize=SRR.ScRun.FileSize.from_string(f'{raw["filesize"]}B'),
                 readtype=SRR.ScRun.ReadType.from_string(raw["read_type"]),
                 lane=SRR.ScRun.Lane.auto(
-                    filetype=filetype, cloud_file_name=cloud_path.name,
-                    ignore_warning=ignoreerror
+                    filetype=filetype,
+                    cloud_file_name=cloud_path.name,
+                    ignore_warning=ignoreerror,
                 ),
             )
             return scr
 
-        url = f"https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={sra_run_id}"
+        url = (
+            f"https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={sra_run_id}"
+        )
         tree = ET.fromstring(requests.get(url).content.decode())
         member = tree.find("RUN/Pool/Member")
         gsm_id = ""
@@ -259,7 +261,7 @@ class SRR:
                             "filesize": filesize,
                             "read_type": "Unknown",
                             "filetype": ftype,
-                            "gsm_id": gsm_id
+                            "gsm_id": gsm_id,
                         }
                     )
 
@@ -386,8 +388,7 @@ class GSM:
             srx_id=target_gsm["SRA"][1],
             child_srr_ids=DB.gsm_to_srr(runid)["run_accession"].to_list(),
             parent_gse_id=(
-                __result.query('accession.str.contains("GSE")',
-                               engine="python")
+                __result.query('accession.str.contains("GSE")', engine="python")
             ).to_dict()["accession"][0],
         )
 
@@ -446,14 +447,15 @@ class GSE:
         self.child_gsm_ids: List[Dict[str, str]] = child_gsm_ids
         """accession: GSM ID\ntitle: sample name"""
 
+    gses: List[GSE] = []
     @ClassProperty
     @classmethod
     def runs(cls):
-        gses: List[GSE] = []
-        raw_gses = FileManager.read_accessions()["GSE"]
-        for _id in raw_gses:
-            gses.append(GSE.from_dict(raw_gses[_id]))
-        return gses
+        if len(GSE.gses) == 0:
+            raw_gses = FileManager.read_accessions()["GSE"]
+            for _id in raw_gses:
+                GSE.gses.append(GSE.from_dict(raw_gses[_id]))
+        return GSE.gses
 
     @staticmethod
     def search(runid: str, return_error: bool = False):
@@ -477,7 +479,8 @@ class GSE:
                 return "Target GSE is not exist or empty."
             print("[ERROR] Target GSE is not exist or empty.")
             quit()
-        return GSE(
+        # TODO: GSEのファイル書き出しを一元化する
+        newgse = GSE(
             runid=target_gse.pipe(lambda d: d["accession"])[0],
             title=target_gse.pipe(lambda d: d["title"])[0],
             summary=target_gse.pipe(lambda d: d["summary"])[0],
@@ -487,6 +490,8 @@ class GSE:
             srp_id=target_gse.pipe(lambda d: d["SRA"])[0],
             child_gsm_ids=target_gse.pipe(lambda d: d["samples"])[0],
         )
+        GSE.gses.append(newgse)
+        return newgse
 
     @staticmethod
     def from_dict(dict: Dict):
