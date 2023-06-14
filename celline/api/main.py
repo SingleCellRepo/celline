@@ -10,6 +10,9 @@ import json
 from typing import Optional
 import pandas as pd
 from typing import List
+from celline.server.connection import RemoteServer, ServerConnection
+
+
 exec_path = sys.argv[1]
 proj_path = sys.argv[2]
 
@@ -213,6 +216,78 @@ def dump():
 @app.route("/status", methods=["GET"])
 def status():
     return "Constructing"
+
+
+@app.route("/servers", methods=["GET", "POST", "DELETE"])
+def servers():
+    try:
+        req = request.args
+        id = req.get("id")
+        if request.method == "GET":
+            if id is None:
+                # Get all
+                servers = RemoteServer.servers()
+                servers_compiled: List = []
+                for name in servers:
+                    servers_compiled.append(vars(servers[name]))
+                return json.dumps(servers_compiled)
+            else:
+                if RemoteServer.contains(id):
+                    return json.dumps(vars(RemoteServer(id).target_server))
+                else:
+                    return f"Could not find target server: {id}"
+        elif request.method == "POST":
+            if id is None:
+                return "Multiple update is not allowed."
+            else:
+                server = RemoteServer.ServerSettingStruct(
+                    **json.loads(request.data))
+                if id != server.name:
+                    return "Given server name and id incoinsident"
+                else:
+                    RemoteServer.add_or_update_server(
+                        server.name,
+                        server.ip,
+                        server.uname,
+                        server.secretkey_path,
+                        server.port
+                    )
+                    return f"SUCESS"
+        elif request.method == "DELETE":
+            if id is None:
+                return "Multiple update is not allowed."
+            else:
+                if RemoteServer.delete(id):
+                    return "SUCESS"
+                else:
+                    return "Could not delete target server"
+        else:
+            return "Unknown request"
+    finally:
+        print("SUCESS")
+
+
+@app.route("/server_status", methods=["GET"])
+def server_status():
+    try:
+        req = request.args
+        id = req.get("id")
+        if id is None:
+            return "ID_UNKNOWN"
+        if not RemoteServer.contains(id):
+            return f"Unknown server: {id}"
+        server = RemoteServer(id)
+        try:
+            with ServerConnection(server) as connection:
+                _, stdout, stderr = connection.execute("echo Hello world")
+                if str(stdout) == "Hello world":
+                    return str(True)
+                else:
+                    return str(False)
+        except TimeoutError:
+            return str(False)
+    finally:
+        print("SUCESS")
 
 
 app.run(port=8000, debug=True)

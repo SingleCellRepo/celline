@@ -22,6 +22,7 @@
         </v-window-item>
       </v-window>
     </v-main>
+    <Settings id="setting_btn"></Settings>
   </v-app>
 </template>
 
@@ -31,12 +32,14 @@ import Header from "./components/Header.vue";
 import { ref } from "vue";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import Datasets from "./components/Datasets.vue";
+import Settings from "./components/Settings.vue";
 
 const URL = "http://localhost:8000/";
 @Options({
   components: {
     Header,
     Datasets,
+    Settings,
   },
 })
 export default class App extends Vue {
@@ -64,6 +67,11 @@ export default class App extends Vue {
     z-index: 15;
     width: 100vw;
     background-color: white;
+  }
+  #setting_btn {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
   }
 }
 </style>

@@ -1,0 +1,6 @@
+[servers.sunrise]
+name = "sunrise"
+ip = "133.9.125.56"
+uname = "yuyasato"
+secretkey_path = "/Users/yuyasato/.ssh/sunrise/sunrise"
+port = 49152
