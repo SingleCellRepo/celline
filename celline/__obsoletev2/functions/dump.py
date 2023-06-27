@@ -61,7 +61,8 @@ class Dump(CellineFunction):
                 ]
             )
             if DirectoryManager.is_dumped(gsm_id):
-                print(f"[WARNING] Specified GSM ID ({gsm_id}) is already dumped. Skip.")
+                print(
+                    f"[WARNING] Specified GSM ID ({gsm_id}) is already dumped. Skip.")
             else:
                 target_gsm.append(gsm_id)
         return target_gsm
@@ -84,7 +85,8 @@ class Dump(CellineFunction):
         if job_cluster is not None:
             if "PBS" in job_cluster:
                 if "@" not in job_cluster:
-                    print("[ERROR] PBS job shold called as PBS@<cluster_server_name>")
+                    print(
+                        "[ERROR] PBS job shold called as PBS@<cluster_server_name>")
                     quit()
                 splitted = job_cluster.split("@")
                 if splitted[0] == "PBS":
@@ -96,7 +98,8 @@ class Dump(CellineFunction):
                         quit()
                     server_name = splitted[1]
                 else:
-                    print("[ERROR] PBS job shold called as PBS@<cluster_server_name>")
+                    print(
+                        "[ERROR] PBS job shold called as PBS@<cluster_server_name>")
                     quit()
             elif "nohup" in job_cluster:
                 job_system = JobSystem.nohup
@@ -164,7 +167,8 @@ class Dump(CellineFunction):
             else:
                 result_cmd = ""
             if job != 0:
-                result_cmd += "\n".join(cmds[__base_job_num : __base_job_num + job])
+                result_cmd += "\n".join(
+                    cmds[__base_job_num: __base_job_num + job])
                 with open(f"{job_directory}/cluster{cluster_num}.sh", mode="w") as f:
                     f.write(result_cmd)
                 cluster_num += 1

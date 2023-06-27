@@ -1,2 +1,1 @@
-from . import *
-from celline.database import NCBI
+from celline.interfaces import Project

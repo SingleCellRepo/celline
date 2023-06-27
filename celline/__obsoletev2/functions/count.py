@@ -123,7 +123,8 @@ cellranger count --id={gsm.id} --fastqs=$raw_path --sample={gsm.id} --transcript
         if job_cluster is not None:
             if "PBS" in job_cluster:
                 if "@" not in job_cluster:
-                    print("[ERROR] PBS job shold called as PBS@<cluster_server_name>")
+                    print(
+                        "[ERROR] PBS job shold called as PBS@<cluster_server_name>")
                     quit()
                 splitted = job_cluster.split("@")
                 if splitted[0] == "PBS":
@@ -135,7 +136,8 @@ cellranger count --id={gsm.id} --fastqs=$raw_path --sample={gsm.id} --transcript
                         quit()
                     server_name = splitted[1]
                 else:
-                    print("[ERROR] PBS job shold called as PBS@<cluster_server_name>")
+                    print(
+                        "[ERROR] PBS job shold called as PBS@<cluster_server_name>")
                     quit()
         directory_time_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         job_directory = f"{Config.PROJ_ROOT}/jobs/auto/1_count/{directory_time_str}"
@@ -159,8 +161,9 @@ cellranger count --id={gsm.id} --fastqs=$raw_path --sample={gsm.id} --transcript
             else:
                 result_cmd = ""
             if job != 0:
-                for __gsm in target_gsms[__base_job_num : __base_job_num + job]:
-                    __generated = self.build_job(current[__gsm], each_nthread=nthread)
+                for __gsm in target_gsms[__base_job_num: __base_job_num + job]:
+                    __generated = self.build_job(
+                        current[__gsm], each_nthread=nthread)
                     if __generated is not None:
                         result_cmd += __generated
                 with open(f"{job_directory}/cluster{cluster_num}.sh", mode="w") as f:
@@ -171,8 +174,7 @@ cellranger count --id={gsm.id} --fastqs=$raw_path --sample={gsm.id} --transcript
                 for target_cluster in range(cluster_num):
                     if job_system == JobSystem.default_bash:
                         subprocess.run(
-                            f"bash {job_directory}/cluster{target_cluster}.sh",
-                            shell=True,
+                            f"bash {job_directory}/cluster{target_cluster}.sh", shell=True
                         )
                     elif job_system == JobSystem.nohup:
                         subprocess.run(
@@ -181,8 +183,7 @@ cellranger count --id={gsm.id} --fastqs=$raw_path --sample={gsm.id} --transcript
                         )
                     elif job_system == JobSystem.PBS:
                         subprocess.run(
-                            f"qsub {job_directory}/cluster{target_cluster}.sh",
-                            shell=True,
+                            f"qsub {job_directory}/cluster{target_cluster}.sh", shell=True
                         )
                     else:
                         print("[ERROR] Unknown job system :(")

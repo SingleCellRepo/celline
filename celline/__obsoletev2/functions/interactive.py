@@ -24,12 +24,12 @@ class Interactive(CellineFunction):
             # __proc_num = __proc8080.stdout.decode()
             # if __proc_num != "":
             #     print(__proc_num)
-            subprocess.run("pip install flask && pip install flask_cors", shell=True)
+            subprocess.run(
+                "pip install flask && pip install flask_cors", shell=True)
             back_proc = subprocess.Popen(
                 f"python {Config.EXEC_ROOT}/celline/api/main.py {Config.EXEC_ROOT} {Config.PROJ_ROOT}",
                 stdout=subprocess.PIPE,
-                shell=True,
-            )
+                shell=True)
             # front_proc = subprocess.Popen(
             #     f"cd {Config.EXEC_ROOT}/frontend && npm run serve",
             #     stdout=subprocess.PIPE,

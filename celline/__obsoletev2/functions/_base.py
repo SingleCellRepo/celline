@@ -1,7 +1,7 @@
 from __future__ import annotations  # type: ignore
 from abc import ABCMeta, abstractmethod
 from celline.plugins.collections.generic import ListC, DictionaryC
-from typing import List, Optional, Any, Dict, TYPE_CHECKING, Protocol
+from typing import List, Optional, Any, Dict
 from celline.plugins.reflection.activator import Activator
 from celline.plugins.reflection.module import Module
 from celline.plugins.reflection.type import (
@@ -12,18 +12,12 @@ from celline.plugins.reflection.type import (
     typeof,
 )
 
-if TYPE_CHECKING:
-    from celline import Project
 
-
-class CellineFunction(Protocol):
+class CellineFunction(metaclass=ABCMeta):
     """
     Abstract class to extend celline function
     """
-
-    def __init__(self, **args) -> None:
-        super().__init__()
-
+    @abstractmethod
     def register(self) -> str:
         """
         [Abstract] Register method
@@ -31,7 +25,8 @@ class CellineFunction(Protocol):
         """
         return "None"
 
-    def call(self, project: Project):
+    @abstractmethod
+    def on_call(self, args: Dict[str, DictionaryC[str, Optional[str]]]):
         """
         [Abstract] On call method.
         args["req_<number>"]: get required argument
