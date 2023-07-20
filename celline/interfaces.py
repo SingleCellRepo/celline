@@ -32,6 +32,8 @@ class Project:
 
         self.EXEC_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self.PROJ_PATH = project_dir
+        Config.EXEC_ROOT = self.EXEC_PATH
+        Config.PROJ_ROOT = self.PROJ_PATH
         if not os.path.isfile(f"{self.PROJ_PATH}/setting.toml"):
             Setting.name = get_default_proj_name() if proj_name == "" else proj_name
             Setting.r_path = get_r_path() if r_path == "" else r_path
@@ -88,10 +90,6 @@ class Project:
         else:
             false(self)
         return self
-
-    def execute(self, usePBS: bool, max_nthread: int):
-        print("Execution started")
-        return
 
     # def observable(self) -> Observable:
     #     return Observable(self)

@@ -8,6 +8,7 @@ from typing import (
     NamedTuple,
     get_type_hints,
     Callable,
+    Optional,
 )
 from celline.utils.exceptions import NullPointException
 import polars as pl
@@ -35,17 +36,17 @@ class BaseModel(metaclass=ABCMeta):
 
     df: pl.DataFrame
     __class_name: str = ""
-    scheme: Type[Schema]
+    schema: Type[Schema]
     PATH: Final[str]
     EXEC_ROOT: Final[str]
 
     def __init__(self) -> None:
-        # if (self.__class_name == "") | (self.scheme == DBBase.Scheme.notoverrided):
+        # if (self.__class_name == "") | (self.schema == DBBase.Scheme.notoverrided):
         #     raise LookupError(
-        #         "Please override __class_name and scheme variable in your custom DB."
+        #         "Please override __class_name and schema variable in your custom DB."
         #     )
         self.__class_name = self.set_class_name()
-        self.scheme = self.set_scheme()
+        self.schema = self.set_schema()
         self.EXEC_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.PATH = f"{self.EXEC_ROOT}/DB/{self.__class_name}.parquet"
         if os.path.isfile(self.PATH):
@@ -62,7 +63,7 @@ class BaseModel(metaclass=ABCMeta):
         return __class__.__name__
 
     @abstractmethod
-    def set_scheme(self) -> Type[Schema]:
+    def set_schema(self) -> Type[Schema]:
         return BaseModel.Schema
 
     # @overload
@@ -109,22 +110,22 @@ class BaseModel(metaclass=ABCMeta):
     #     t6: Optional[List[T6]] = None
     #     t7: Optional[List[T7]] = None
     #     t8: Optional[List[T8]] = None
-    #     for name in self.scheme._fields:
-    #         if getattr(self.scheme, name) == col1:
+    #     for name in self.schema._fields:
+    #         if getattr(self.schema, name) == col1:
     #             t1 = self.df.get_column(name).to_list()
-    #         if getattr(self.scheme, name) == col2:
+    #         if getattr(self.schema, name) == col2:
     #             t2 = self.df.get_column(name).to_list()
-    #         if getattr(self.scheme, name) == col3:
+    #         if getattr(self.schema, name) == col3:
     #             t3 = self.df.get_column(name).to_list()
-    #         if getattr(self.scheme, name) == col4:
+    #         if getattr(self.schema, name) == col4:
     #             t4 = self.df.get_column(name).to_list()
-    #         if getattr(self.scheme, name) == col5:
+    #         if getattr(self.schema, name) == col5:
     #             t5 = self.df.get_column(name).to_list()
-    #         if getattr(self.scheme, name) == col6:
+    #         if getattr(self.schema, name) == col6:
     #             t6 = self.df.get_column(name).to_list()
-    #         if getattr(self.scheme, name) == col7:
+    #         if getattr(self.schema, name) == col7:
     #             t7 = self.df.get_column(name).to_list()
-    #         if getattr(self.scheme, name) == col8:
+    #         if getattr(self.schema, name) == col8:
     #             t8 = self.df.get_column(name).to_list()
     #     return (
     #         t1,
@@ -137,8 +138,12 @@ class BaseModel(metaclass=ABCMeta):
     #         t8,
     #     )
 
-    def as_schema(self, schema_def: Type[T]) -> List[T]:
-        return [schema_def(*t) for t in self.df.to_pandas().itertuples(index=False)]
+    def as_schema(
+        self, schema_def: Type[T], df: Optional[pl.DataFrame] = None
+    ) -> List[T]:
+        if df is None:
+            df = self.df
+        return [schema_def(*t) for t in df.to_pandas().itertuples(index=False)]
 
     def get(self, target_schema: Type[T], filter_func: Callable[[T], bool]) -> List[T]:
         result: List[T] = []
@@ -149,8 +154,8 @@ class BaseModel(metaclass=ABCMeta):
                 result.append(schema_each)
         return result
         # tname = ""
-        # for name in self.scheme._fields:
-        #     if getattr(self.scheme, name) == filter_col:
+        # for name in self.schema._fields:
+        #     if getattr(self.schema, name) == filter_col:
         #         tname = name
         #         break
         # if tname == "":
@@ -162,9 +167,9 @@ class BaseModel(metaclass=ABCMeta):
         #     if filter_func(column):
         #         target_column.append(column)
         # # target_df = self.df.filter(pl.col(tname).is_in(target_column))
-        # # self.scheme(target_df)
+        # # self.schema(target_df)
         # return [
-        #     self.scheme(*row)
+        #     self.schema(*row)
         #     for row in self.df.filter(pl.col(tname).is_in(target_column))
         #     .to_pandas()
         #     .itertuples(index=False)
@@ -173,8 +178,8 @@ class BaseModel(metaclass=ABCMeta):
     def plptr(self, col) -> pl.Expr:
         """Returns a pointer to the column that applies to col."""
         tname = ""
-        for name in self.scheme._fields:
-            if getattr(self.scheme, name) == col:
+        for name in self.schema._fields:
+            if getattr(self.schema, name) == col:
                 tname = name
                 break
         if tname == "":
@@ -183,18 +188,24 @@ class BaseModel(metaclass=ABCMeta):
             )
         return pl.col(tname)
 
-    def as_dataframe(self, scheme_instance: NamedTuple) -> pl.DataFrame:
+    def as_dataframe(self, schema_instance: NamedTuple) -> pl.DataFrame:
         return pl.DataFrame(
             {
-                field: [getattr(scheme_instance, field)]
-                for field in scheme_instance._fields
+                field: [getattr(schema_instance, field)]
+                for field in schema_instance._fields
             },
-            schema=get_type_hints(self.scheme),
+            schema=get_type_hints(self.schema),
         )
 
+    def add_schema(self, schema_instance: NamedTuple):
+        newdata = self.as_dataframe(schema_instance)
+        self.df = pl.concat([self.df, newdata])
+        self.flush()
+        return self.as_schema(self.schema, newdata)[0]
+
     @property
-    def type_scheme(self) -> Dict[str, type]:
-        return get_type_hints(self.scheme)
+    def type_schema(self) -> Dict[str, type]:
+        return get_type_hints(self.schema)
 
     def flush(self):
         self.df.write_parquet(f"{self.EXEC_ROOT}/DB/{self.__class_name}.parquet")

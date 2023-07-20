@@ -4,7 +4,7 @@ import sys
 from celline.database import NCBI, GSE, GSM, SRR
 from celline.config import Config, Setting
 from celline.data.files import FileManager
-from celline.functions.dump import Dump
+from celline.functions.download import Dump
 from celline.plugins.collections.generic import DictionaryC
 import json
 from typing import Optional
@@ -16,14 +16,14 @@ from celline.server.connection import RemoteServer, ServerConnection
 exec_path = sys.argv[1]
 proj_path = sys.argv[2]
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder=".", static_url_path="")
 CORS(app)
 
 Config.initialize(exec_path, proj_path, cmd="interactive")
 Setting.initialize()
 
 
-@app.route('/', methods=["GET"])
+@app.route("/", methods=["GET"])
 def index():
     return "Hello TEST"
 
@@ -70,22 +70,25 @@ def postgsm():
             runs = FileManager.read_runs()
             runs = pd.concat(
                 [
-                    pd.DataFrame(runs[~(runs["gsm_id"].isin([
-                        d["accession"] for d in gse.child_gsm_ids
-                    ]))]).reset_index(),
+                    pd.DataFrame(
+                        runs[
+                            ~(
+                                runs["gsm_id"].isin(
+                                    [d["accession"] for d in gse.child_gsm_ids]
+                                )
+                            )
+                        ]
+                    ).reset_index(),
                     pd.DataFrame(
                         data={
                             "gsm_id": json.loads(request.data)["gsm_id"],
-                            "sample_name": json.loads(request.data)["sample_name"]
+                            "sample_name": json.loads(request.data)["sample_name"],
                         }
-                    ).reset_index()
+                    ).reset_index(),
                 ]
             ).set_index("gsm_id")
             del runs["index"]
-            runs.to_csv(
-                f"{Config.PROJ_ROOT}/runs.tsv",
-                sep="\t"
-            )
+            runs.to_csv(f"{Config.PROJ_ROOT}/runs.tsv", sep="\t")
             return "SUCESS"
     finally:
         print("SUCESS")
@@ -103,16 +106,23 @@ def get_gse():
             if isinstance(result, str):
                 return result
             else:
-                return json.dumps({
-                    "runid": result.runid,
-                    "title": result.title,
-                    "link": f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={result.runid}",
-                    "summary": result.summary,
-                    "species": result.species,
-                    "raw_link": result.raw_link,
-                    "gsms": result.child_gsm_ids,
-                    "target_gsms": [id for id in result.child_gsm_ids if id["accession"] in FileManager.read_runs()["gsm_id"].to_list()]
-                })
+                return json.dumps(
+                    {
+                        "runid": result.runid,
+                        "title": result.title,
+                        "link": f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={result.runid}",
+                        "summary": result.summary,
+                        "species": result.species,
+                        "raw_link": result.raw_link,
+                        "gsms": result.child_gsm_ids,
+                        "target_gsms": [
+                            id
+                            for id in result.child_gsm_ids
+                            if id["accession"]
+                            in FileManager.read_runs()["gsm_id"].to_list()
+                        ],
+                    }
+                )
     finally:
         print("SUCESS")
 
@@ -129,9 +139,7 @@ def get_child_gsm_in_gse():
             target_gsmid = []
             for gsm in all_data:
                 if all_data[gsm].parent_gse_id == id:
-                    target_gsmid.append({
-                        "gsm_id": gsm
-                    })
+                    target_gsmid.append({"gsm_id": gsm})
             return target_gsmid
     finally:
         print("SUCESS")
@@ -141,16 +149,25 @@ def get_child_gsm_in_gse():
 def get_project_gses():
     # with open(f"{Config.EXEC_ROOT}/test.log", mode="w") as f:
     #     f.writelines(FileManager.read_runs()["gsm_id"].to_list())
-    return json.dumps([{
-        "runid": d.runid,
-        "title": d.title,
-        "link": f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={d.runid}",
-        "summary": d.summary,
-        "species": d.species,
-        "raw_link": d.raw_link,
-        "gsms": d.child_gsm_ids,
-        "target_gsms": [id for id in d.child_gsm_ids if id["accession"] in FileManager.read_runs()["gsm_id"].to_list()]
-    } for d in GSE.runs])
+    return json.dumps(
+        [
+            {
+                "runid": d.runid,
+                "title": d.title,
+                "link": f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={d.runid}",
+                "summary": d.summary,
+                "species": d.species,
+                "raw_link": d.raw_link,
+                "gsms": d.child_gsm_ids,
+                "target_gsms": [
+                    id
+                    for id in d.child_gsm_ids
+                    if id["accession"] in FileManager.read_runs()["gsm_id"].to_list()
+                ],
+            }
+            for d in GSE.runs
+        ]
+    )
 
 
 @app.route("/srr", methods=["GET"])
@@ -176,9 +193,11 @@ def srr():
                                 "filesize": run.filesize.sizeGB,
                                 "lane": run.lane.name,
                                 "readtype": run.readtype.name,
-                            } for run in d.sc_runs
-                        ]
-                    } for d in srrs
+                            }
+                            for run in d.sc_runs
+                        ],
+                    }
+                    for d in srrs
                 ]
             )
     finally:
@@ -198,16 +217,13 @@ def dump():
             if isinstance(target_gse, str):
                 return target_gse
             options = DictionaryC[str, Optional[str]]()
-            options.Add("gsm", ",".join([d["accession"]
-                        for d in target_gse.child_gsm_ids]))
+            options.Add(
+                "gsm", ",".join([d["accession"] for d in target_gse.child_gsm_ids])
+            )
             options.Add("nthread", "10")
             options.Add("job", "PBS@yuri")
             options.Add("norun", "")
-            Dump().on_call(
-                args={
-                    "options": options
-                }
-            )
+            Dump().on_call(args={"options": options})
             return "SUCESS"
     finally:
         print("SUCESS")
@@ -240,8 +256,7 @@ def servers():
             if id is None:
                 return "Multiple update is not allowed."
             else:
-                server = RemoteServer.ServerSettingStruct(
-                    **json.loads(request.data))
+                server = RemoteServer.ServerSettingStruct(**json.loads(request.data))
                 if id != server.name:
                     return "Given server name and id incoinsident"
                 else:
@@ -250,7 +265,7 @@ def servers():
                         server.ip,
                         server.uname,
                         server.secretkey_path,
-                        server.port
+                        server.port,
                     )
                     return f"SUCESS"
         elif request.method == "DELETE":

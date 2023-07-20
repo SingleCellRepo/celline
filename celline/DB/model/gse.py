@@ -24,7 +24,7 @@ class GSE(BaseModel):
     def set_class_name(self) -> str:
         return __class__.__name__
 
-    def set_scheme(self) -> Type[Schema]:
+    def set_schema(self) -> Type[Schema]:
         return GSE.Schema
 
     def exist(self, gse_id: str):
@@ -32,15 +32,18 @@ class GSE(BaseModel):
             self.df.filter(self.plptr(GSE.Schema.accession_id) == gse_id).shape[0]
         ) != 0
 
-    def search(self, gse_id: str):
+    def search(self, gse_id: str) -> Schema:
         if self.exist(gse_id):
-            return self.df.filter(self.plptr(GSE.Schema.accession_id) == gse_id).head(1)
+            return self.as_schema(
+                GSE.Schema,
+                self.df.filter(self.plptr(GSE.Schema.accession_id) == gse_id).head(1),
+            )[0]
         __result = GSE.DB.fetch_gds_results(gse_id)
         if __result is None:
             raise KeyError(f"Requested GSE: {gse_id} does not exists in database.")
         target_gsm = (__result.query(f'accession == "{gse_id}"')).to_dict()
         del __result
-        gse = self.as_dataframe(
+        return self.add_schema(
             GSE.Schema(
                 accession_id=str(target_gsm["accession"][0]),
                 title=str(target_gsm["title"][0]),
@@ -49,9 +52,4 @@ class GSE(BaseModel):
                     d["accession"] for d in target_gsm["samples"][0]
                 ),
             )
-        )
-        self.df = pl.concat([self.df, gse])
-        self.flush()
-        return gse
-
-    T1 = TypeVar("T1")
+        )  # type: ignore
