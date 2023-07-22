@@ -6,6 +6,7 @@ import subprocess
 # from celline.database import NCBI, GSE, GSM
 from typing import Any, Callable, Generic, List, TypeVar, Union, Dict, Tuple, Final
 from celline.functions._base import CellineFunction
+from celline.middleware import ThreadObservable
 
 
 class Project:
@@ -15,7 +16,6 @@ class Project:
 
     EXEC_PATH: Final[str]
     PROJ_PATH: Final[str]
-    __nthread: int = 1
 
     def __init__(self, project_dir: str, proj_name: str = "", r_path: str = "") -> None:
         """
@@ -23,8 +23,10 @@ class Project:
         """
 
         def get_r_path() -> str:
-            proc = subprocess.Popen("which R", stdout=subprocess.PIPE, shell=True)
-            result = proc.communicate()
+            with subprocess.Popen(
+                "which R", stdout=subprocess.PIPE, shell=True
+            ) as proc:
+                result = proc.communicate()
             return result[0].decode("utf-8").replace("\n", "")
 
         def get_default_proj_name() -> str:
@@ -43,10 +45,12 @@ class Project:
 
     @property
     def nthread(self) -> int:
-        return self.__nthread
+        return ThreadObservable.nthread
 
-    def call(self, func: CellineFunction):
+    def call(self, func: CellineFunction, wait_for_complete=True):
         func.call(self)
+        ThreadObservable.wait_for_complete = wait_for_complete
+        ThreadObservable.watch()
         return self
 
     def call_if_else(
@@ -67,10 +71,14 @@ class Project:
         Starts parallel computation\n
         @ nthread<int>: Number of thread
         """
-        self.__nthread = nthread
+        ThreadObservable.set_nthread(nthread)
         return self
 
     def singularize(self):
+        """
+        Set singular computation
+        """
+        ThreadObservable.set_nthread(1)
         return self
 
     def start_logging(self):
@@ -90,6 +98,3 @@ class Project:
         else:
             false(self)
         return self
-
-    # def observable(self) -> Observable:
-    #     return Observable(self)

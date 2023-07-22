@@ -24,7 +24,7 @@ class GEOHandler:
             if log:
                 print(f"--> Migrating {srr} ({cnt}/{len(ids)})")
             _ = srr_instance.search(srr)
-        cnt += 1
+            cnt += 1
         # gses = gse_instance.as_schema(GSE.Schema)
         # for gse in gses:
         #     if log:

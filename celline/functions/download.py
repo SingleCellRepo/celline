@@ -2,7 +2,7 @@ from enum import Enum
 import os
 import subprocess
 import datetime
-from typing import Dict, Optional, TYPE_CHECKING, NamedTuple, Callable
+from typing import Dict, Optional, TYPE_CHECKING, NamedTuple, Callable, List
 
 import polars as pl
 import toml
@@ -13,7 +13,7 @@ from celline.DB.model import GSM, GSE, SRR
 from celline.config import Config
 from celline.utils.path import Path
 from celline.template import TemplateManager
-from celline.middleware.shell import Shell
+from celline.middleware import ThreadObservable, Shell
 
 if TYPE_CHECKING:
     from celline import Project
@@ -23,11 +23,6 @@ class Download(CellineFunction):
     """
     Download data into your project.
     """
-
-    class Mode(Enum):
-        Bash = 1
-        Nohup = 2
-        PBS = 3
 
     class JobContainer(NamedTuple):
         """
@@ -46,7 +41,7 @@ class Download(CellineFunction):
 
     def __init__(
         self,
-        job_mode: Mode = Mode.PBS,
+        job_mode: Shell.JobType = Shell.JobType.MultiThreading,
         then: Optional[Callable[[str], None]] = None,
         catch: Optional[Callable[[subprocess.CalledProcessError], None]] = None,
         cluster_server: Optional[str] = None,
@@ -54,7 +49,7 @@ class Download(CellineFunction):
         """
         Initialize the Download function with job mode and thread count.
         """
-        if job_mode == Download.Mode.PBS and cluster_server is None:
+        if job_mode == Shell.JobType.PBS and cluster_server is None:
             raise SyntaxError(
                 "If you use PBS system, please define the cluster server."
             )
@@ -74,6 +69,7 @@ class Download(CellineFunction):
             return project
         with open(sample_info_file, mode="r", encoding="utf-8") as f:
             samples: Dict[str, str] = toml.load(f)
+            all_job_files: List[str] = []
             for sample in samples:
                 gsm_schema = GSM().search(sample)
                 srr_schema = SRR().search(gsm_schema.child_srr_ids.split(",")[0])
@@ -97,25 +93,6 @@ class Download(CellineFunction):
                     ),
                     replaced_path=f"{path.resources_sample_src}/download.sh",
                 )
-                shell = Shell()  # Prepare shell
-                if self.job_mode == Download.Mode.PBS:
-                    (
-                        shell.execute(f"qsub {path.resources_sample_src}/download.sh")
-                        .then(self.then)
-                        .catch(self.catch)
-                    )
-                elif self.job_mode == Download.Mode.Bash:
-                    (
-                        shell.execute(f"bash {path.resources_sample_src}/download.sh")
-                        .then(self.then)
-                        .catch(self.catch)
-                    )
-                elif self.job_mode == Download.Mode.Nohup:
-                    (
-                        shell.execute(
-                            f"nohup bash {path.resources_sample_src}/download.sh > {path.resources_sample_log}.runtime.log"
-                        )
-                        .then(self.then)
-                        .catch(self.catch)
-                    )
+                all_job_files.append(f"{path.resources_sample_src}/download.sh")
+            ThreadObservable.call_shell(all_job_files)
         return project
