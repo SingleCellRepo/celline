@@ -21,6 +21,10 @@ class ThreadObservable:
     """
 
     class ObservableShell(NamedTuple):
+        """
+        ## Observable shell which used in thread observable
+        """
+
         script_path: str
         then: Callable[[str], None]
         catch: Callable[[str], None]
@@ -140,6 +144,9 @@ class ThreadObservable:
         #### Watch and print all running jobs.
         Continues to check until all the jobs are done.
         """
-        while not cls.__queue.empty() or cls.__running_jobs:
-            time.sleep(0.1)
+        try:
+            while not cls.__queue.empty() or cls.__running_jobs:
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("Ctrl+Cが押されました。プログラムを終了します。")
         return cls

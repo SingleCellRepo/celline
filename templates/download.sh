@@ -51,6 +51,7 @@ elif [ "$filetype" = "fastq" ]; then
         mkdir -p "$run_id"
         cd "$run_id"
         # if the number of file starting with "${sample_id}_S1_L001" and ending with "fastq.gz" is less than 2
+        #TODO: ここが上手く動いてません
         if [ $(ls ${sample_id}_S1_L001*.fastq.gz 2> /dev/null | wc -l) -lt 2 ]; then
             # remove recursively
             cd ..

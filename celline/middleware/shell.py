@@ -118,7 +118,9 @@ class Shell:
         job = cls._Job(process, job_system)
         cls._job_queue.put(job)
         if not cls._watcher_started:
-            threading.Thread(target=cls._watch_jobs).start()
+            watcher_thread = threading.Thread(target=cls._watch_jobs)
+            watcher_thread.daemon = True  # Here we set daemon
+            watcher_thread.start()
             cls._watcher_started = True
         return job
 
