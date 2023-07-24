@@ -258,6 +258,14 @@ class GSM(BaseModel):
         sample = gsm_xml.find("Sample")
         proto = sample.find("Extract-Protocol")
         organism = sample.find("Organism")
+        if organism is None:
+            platform = gsm_xml.find("Platform")
+            if platform is not None:
+                organism = platform.find("Organism")
+                if organism is None:
+                    raise KeyError("Could not identify target species")
+            else:
+                raise KeyError("Could not identify target species")
         title = sample.find("Title").text if sample.find("Title") is not None else ""
         summary = proto.text if proto is not None else ""
         species = organism.text if organism is not None else ""
