@@ -1,2 +1,2 @@
-install:
-	@bash tools/install.sh
+setup:
+	@python setup.py sdist bdist_wheel

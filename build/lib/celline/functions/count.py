@@ -72,7 +72,7 @@ class Count(CellineFunction):
                         f"Could not find transcriptome of {gsm_schema.species}. Please add or build & register transcriptomes using celline.DB.model.Transcriptome.add_path(species: str, built_path: str) or build(species: str, ...)"
                     )
                 TemplateManager.replace_from_file(
-                    file_name="count.sh",
+                    file_name="download.sh",
                     structure=Count.JobContainer(
                         nthread=str(self.nthread),
                         cluster_server=""
