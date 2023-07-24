@@ -49,6 +49,7 @@ pip install git+https://github.com/SingleCellRepo/celline
 
 ```bash
 pip install --upgrade --force-reinstall git+https://github.com/SingleCellRepo/celline
+pip install --upgrade --no-deps --force-reinstall git+https://github.com/SingleCellRepo/celline
 ```
 
 ### 3. Frontend installation.

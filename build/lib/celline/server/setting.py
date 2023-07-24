@@ -17,10 +17,10 @@ class ServerSystem:
 
     @classmethod
     def useMultiThreading(cls):
-        cls._job_system = ServerSystem.JobType.MultiThreading
-        cls._cluster_server_name = None
+        cls.job_system = ServerSystem.JobType.MultiThreading
+        cls.cluster_server_name = None
 
     @classmethod
     def usePBS(cls, cluster_server_name: str):
-        cls._job_system = ServerSystem.JobType.PBS
-        cls._cluster_server_name = cluster_server_name
+        cls.job_system = ServerSystem.JobType.PBS
+        cls.cluster_server_name = cluster_server_name
