@@ -45,10 +45,10 @@ Users can prepare the necessary environment for analysis, download data, and fin
 pip install git+https://github.com/SingleCellRepo/celline
 ```
 
-### 2. Install.
+### 2. re-Install.
 
 ```bash
-make install
+pip install --upgrade --force-reinstall git+https://github.com/SingleCellRepo/celline
 ```
 
 ### 3. Frontend installation.
