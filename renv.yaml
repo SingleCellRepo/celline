@@ -1,0 +1,43 @@
+install::packages:
+  - name: pacman
+    version: 0.5.1
+    args: []
+  - name: tidyverse
+    version: 2.0.0
+    args: []
+  - name: BiocManager
+    version: 1.30.21
+    args: []
+  - name: harmony
+    version: 0.1.1
+    args: []
+
+BiocManager:
+  - name: EnsDb.Mmusculus.v79
+    version: null
+    args: []
+  - name: EnsDb.Hsapiens.v86
+    version: null
+    args: []
+  - name: singleCellTK
+    version: null
+    args: []
+
+remotes::install_github:
+  - name: satijalab/seurat
+    version: null
+    args: ["seurat5"]
+  - name: satijalab/seurat-data
+    version: null
+    args: ["seurat5"]
+  - name: satijalab/azimuth
+    version: null
+    args: ["seurat5"]
+  - name: seurat-wrappers
+    version: null
+    args: ["seurat5"]
+  - name: stuart-lab/signac
+    version: null
+    args: ["seurat5"]
+  - name: bnprks/BPCells
+    version: null
