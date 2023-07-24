@@ -2,6 +2,7 @@ import os
 import shutil
 from celline.config import Config
 from typing import Final
+import datetime
 
 
 class Path:
@@ -30,7 +31,7 @@ class Path:
 
     @property
     def resources_sample_counted(self):
-        return f"{self.resources_sample}/conted"
+        return f"{self.resources_sample}/counted"
 
     @property
     def resources_sample_raw(self):
@@ -44,9 +45,23 @@ class Path:
     def resources_sample_log(self):
         return f"{self.resources_sample}/logs"
 
+    def resources_log_file(self, prefix: str):
+        return f"{self.resources_sample_log}/{prefix}_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log"
+
     @property
     def data_sample(self):
         return f"{self.data}/{self.project_id}/{self.sample_id}"
+
+    @property
+    def data_sample_log(self):
+        return f"{self.data}/{self.project_id}/{self.sample_id}/logs"
+
+    @property
+    def data_sample_src(self):
+        return f"{self.data}/{self.project_id}/{self.sample_id}/src"
+
+    def data_log_file(self, prefix: str):
+        return f"{self.data_sample_log}/{prefix}_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log"
 
     def prepare(self):
         if not os.path.isdir(self.resources_sample_raw_fastqs):
@@ -57,3 +72,7 @@ class Path:
             os.makedirs(self.resources_sample_src, exist_ok=True)
         if not os.path.isdir(self.resources_sample_counted):
             os.makedirs(self.resources_sample_counted, exist_ok=True)
+        if not os.path.isdir(self.data_sample_log):
+            os.makedirs(self.data_sample_log, exist_ok=True)
+        if not os.path.isdir(self.data_sample_src):
+            os.makedirs(self.data_sample_src, exist_ok=True)

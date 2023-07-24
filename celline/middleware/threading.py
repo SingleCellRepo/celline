@@ -6,6 +6,8 @@ import time
 from celline.middleware.shell import Shell
 import queue
 import threading
+import subprocess
+from celline.server import ServerSystem
 
 
 class ThreadObservable:
@@ -20,7 +22,7 @@ class ThreadObservable:
         to ensure all the scripts get executed.
     """
 
-    class ObservableShell(NamedTuple):
+    class ObservableShell:
         """
         ## Observable shell which used in thread observable
         """
@@ -28,34 +30,45 @@ class ThreadObservable:
         script_path: str
         then: Callable[[str], None]
         catch: Callable[[str], None]
+        job: Optional[Shell._Job] = None
 
-    _nthread: int = 1
+        def __init__(
+            self,
+            script_path: str,
+            then: Callable[[str], None],
+            catch: Callable[[str], None],
+        ):
+            self.script_path = script_path
+            self.then = then
+            self.catch = catch
+            self.job = None
+
+    _jobs: int = 1
     wait_for_complete: bool = True
     __running_jobs: Dict[str, ObservableShell] = {}
     __queue: queue.Queue = queue.Queue()
     __lock: threading.Lock = threading.Lock()
 
     @classmethod
-    def set_nthread(cls, nthread: int):
+    def set_jobs(cls, njobs: int):
         """
-        #### Set numbre of thread
+        #### Set numbre of jobs
         """
-        ThreadObservable._nthread = nthread
+        ThreadObservable._jobs = njobs
         return cls
 
     @classmethod
     @property
-    def nthread(cls) -> int:
+    def njobs(cls) -> int:
         """
-        #### Numbre of thread
+        #### Numbre of jobs
         """
-        return cls._nthread
+        return cls._jobs
 
     @classmethod
     def call_shell(
         cls,
         shell_ctrl: Union[List[str], List[ObservableShell]],
-        job_type: Shell.JobType = Shell.JobType.MultiThreading,
     ):
         """
         #### Execute shell scripts using threads.
@@ -64,6 +77,7 @@ class ThreadObservable:
             `shell_ctrl<Union[List[str], List[ObservableShell]]>`: List of shell scripts or observable shell objects to be executed.\n
             `job_type<Shell.JobType -optional>`: Type of job execution (single-threaded or multi-threaded). Defaults to Shell.JobType.MultiThreading.
         """
+        job_type = ServerSystem.job_system
 
         def handler(
             _hased_id: str,
@@ -129,24 +143,50 @@ class ThreadObservable:
                     partial(thenHandler, script=next_script)
                 ).catch(lambda reason: catchHandler(reason, next_script))
 
-        # 最初のnthread個のスクリプトを実行
-        for _ in range(min(ThreadObservable._nthread, len(cls.__running_jobs))):
+        # 最初のnjobs個のスクリプトを実行
+        for _ in range(min(ThreadObservable._jobs, len(cls.__running_jobs))):
             script = get_first()
             if script is not None:
-                Shell.execute(script.script_path, job_type).then(
-                    partial(thenHandler, script=script)
-                ).catch(partial(catchHandler, script=script))
+                script.job = Shell.execute(script.script_path, job_type)
+                script.job.then(partial(thenHandler, script=script)).catch(
+                    partial(catchHandler, script=script)
+                )
         return cls
 
     @classmethod
     def watch(cls):
         """
-        #### Watch and print all running jobs.
+        #### Watch all running jobs.
         Continues to check until all the jobs are done.
         """
         try:
             while not cls.__queue.empty() or cls.__running_jobs:
                 time.sleep(0.1)
         except KeyboardInterrupt:
-            print("Ctrl+Cが押されました。プログラムを終了します。")
+            print(
+                "\nKeyboard interrupt received. Attempting to terminate running jobs."
+            )
+            for hashed_id, observable_shell in cls.__running_jobs.items():
+                script = observable_shell.script_path
+                job = cls.__running_jobs.get(hashed_id, None)
+                if job:
+                    # if the job is running under PBS system
+                    if job.job is not None:
+                        if (
+                            job.job.job_system == ServerSystem.JobType.PBS
+                            and job.job.job_id
+                        ):
+                            with subprocess.Popen(
+                                f"qdel {job.job.job_id}",
+                                shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                            ) as p:
+                                p.wait()
+                            print(f"├─ Terminating PBS job: {job.job.job_id}")
+                        else:
+                            # if the job is not under PBS, we simply terminate it
+                            job.job.process.terminate()
+                            print(f"├─ Terminating shell script: {script}")
+            print("└─ Exit.")
         return cls

@@ -2,11 +2,26 @@ from __future__ import annotations
 from celline.config import Config, Setting
 import os
 import subprocess
+import toml
 
 # from celline.database import NCBI, GSE, GSM
-from typing import Any, Callable, Generic, List, TypeVar, Union, Dict, Tuple, Final
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    List,
+    TypeVar,
+    Union,
+    Dict,
+    Tuple,
+    Final,
+    Optional,
+)
 from celline.functions._base import CellineFunction
 from celline.middleware import ThreadObservable
+from celline.server import ServerSystem
+from celline.utils.path import Path
+from celline.data import Seurat
 
 
 class Project:
@@ -19,7 +34,7 @@ class Project:
 
     def __init__(self, project_dir: str, proj_name: str = "", r_path: str = "") -> None:
         """
-        Load new celline project
+        #### Load or create new celline project
         """
 
         def get_r_path() -> str:
@@ -42,15 +57,25 @@ class Project:
             Setting.version = "0.01"
             Setting.wait_time = 4
             Setting.flush()
+        with open(f"{self.PROJ_PATH}/setting.toml", mode="r", encoding="utf-8") as f:
+            setting = toml.load(f)
+            Setting.name = setting["project"]["name"]
+            Setting.r_path = setting["R"]["r_path"]
+            Setting.version = setting["project"]["version"]
+            Setting.wait_time = setting["fetch"]["wait_time"]
 
     @property
     def nthread(self) -> int:
-        return ThreadObservable.nthread
+        return ThreadObservable.njobs
 
     def call(self, func: CellineFunction, wait_for_complete=True):
+        """
+        #### Call celline function
+        """
         func.call(self)
         ThreadObservable.wait_for_complete = wait_for_complete
-        ThreadObservable.watch()
+        if wait_for_complete:
+            ThreadObservable.watch()
         return self
 
     def call_if_else(
@@ -66,19 +91,19 @@ class Project:
             false.call(self)
         return self
 
-    def parallelize(self, nthread: int):
+    def parallelize(self, njobs: int):
         """
-        Starts parallel computation\n
-        @ nthread<int>: Number of thread
+        #### Starts parallel computation\n
+        @ njobs<int>: Number of jobs
         """
-        ThreadObservable.set_nthread(nthread)
+        ThreadObservable.set_jobs(njobs)
         return self
 
     def singularize(self):
         """
-        Set singular computation
+        #### End pararel computation
         """
-        ThreadObservable.set_nthread(1)
+        ThreadObservable.set_jobs(1)
         return self
 
     def start_logging(self):
@@ -98,3 +123,28 @@ class Project:
         else:
             false(self)
         return self
+
+    def usePBS(self, cluster_server_name: str):
+        """#### Use PBS system."""
+        print(f"--: Use PBS system: {cluster_server_name}")
+        ServerSystem.usePBS(cluster_server_name)
+        return self
+
+    def useMultiThreading(self):
+        """#### Use mutithreading system."""
+        print("--: Use default multi threading")
+        ServerSystem.useMultiThreading()
+        return self
+
+    def seurat(
+        self,
+        project_id: str,
+        sample_id: str,
+        identifier: str = "seurat.h5seurat",
+        via_seurat_disk: bool = True,
+    ):
+        seurat_path = f"{Path(project_id, sample_id).data_sample}/{identifier}"
+        return self.seurat_from_rawpath(seurat_path, via_seurat_disk)
+
+    def seurat_from_rawpath(self, raw_path: str, via_seurat_disk: bool = True):
+        return Seurat(raw_path, via_seurat_disk)

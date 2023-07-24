@@ -8,7 +8,7 @@
 #PBS -e <logpath>
 
 ## Check command ##
-commands=("bamtofastq" "cellranger")
+commands=("cellranger")
 for command in "${commands[@]}"; do
   if command -v "$command" >/dev/null 2>&1; then
     echo "[CHECK] $command: Resolved."
@@ -39,9 +39,10 @@ mkdir -p "<download_target>" && cd "<download_target>"
 
 if [ "$filetype" = "bam" ]; then
     wget "<download_source>" -O "$sample_id.bam"
-    bamtofastq --nthreads=<nthread> "$sample_id.bam" "./fastqs"
+    cellranger bamtofastq --nthreads=<nthread> "$sample_id.bam" "./fastqs"
 
 elif [ "$filetype" = "fastq" ]; then
+    parent_dir="$(pwd)/fastqs"
     if [ ! -d "fastqs" ]; then
         mkdir -p "fastqs"
         cd "fastqs"
@@ -52,12 +53,13 @@ elif [ "$filetype" = "fastq" ]; then
         cd "$run_id"
         # if the number of file starting with "${sample_id}_S1_L001" and ending with "fastq.gz" is less than 2
         #TODO: ここが上手く動いてません
-        if [ $(ls ${sample_id}_S1_L001*.fastq.gz 2> /dev/null | wc -l) -lt 2 ]; then
-            # remove recursively
-            cd ..
-            rm -rf "$run_id"
-            continue
-        fi
+        # if [ $(ls ${sample_id}_S1_L001*.fastq.gz 2> /dev/null | wc -l) -lt 2 ]; then
+        #     # remove recursively
+        #     cd ..
+        #     rm -rf "$run_id"
+        #     continue
+        # fi
+        cd "$parent_dir"
         fastq-dump --split-files --origfmt --gzip "$run_id"
         input_fastqs=($(ls ${run_id}*.fastq.gz))
         # 配列の長さによるリードインデックスの定義

@@ -28,7 +28,9 @@ class Add(CellineFunction):
 
     def __init__(self, sample_id: Union[List[SampleInfo], pl.DataFrame]) -> None:
         """
-        Add accession ID to DB & your project.
+        #### Add accession ID to DB & your project.
+
+        #### Note: Parallel calculations are not supported
 
         Args:
             sample_id (<List[Add.SampleInfo]> | <pl.DataFrame>): Accession ID to add.

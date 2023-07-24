@@ -9,20 +9,16 @@ from subprocess import Popen, PIPE
 from typing import Optional, Callable, Final, List
 from enum import Enum
 
+from celline.server.setting import ServerSystem
+
 
 class Shell:
     """Represents a shell environment, allowing commands to be executed either via multithreading or a PBS job system."""
 
-    class JobType(Enum):
-        """An enumeration that specifies the type of job system to use."""
-
-        MultiThreading = 1
-        PBS = 2
-
     class _Job:
         """A class that represents a job to be executed in the shell."""
 
-        def __init__(self, process: Popen, job_system: Shell.JobType):
+        def __init__(self, process: Popen, job_system: ServerSystem.JobType):
             """Initializes the job with the given process and job system."""
             self.process = process
             self.job_system = job_system
@@ -34,7 +30,7 @@ class Shell:
             self._output: Optional[bytes] = None
             self._error: Optional[bytes] = None
             self._callback_executed = False
-            if self.job_system == Shell.JobType.PBS:
+            if self.job_system == ServerSystem.JobType.PBS:
                 self._pbs_initial_check()
 
         @property
@@ -98,14 +94,14 @@ class Shell:
     _watcher_started = False
 
     @classmethod
-    def execute(cls, bash_path: str, job_system: Shell.JobType) -> Shell._Job:
+    def execute(cls, bash_path: str, job_system: ServerSystem.JobType) -> Shell._Job:
         """Executes the given bash file in the shell using the specified job system."""
         if cls.DEFAULT_SHELL is None:
             raise ConnectionError("The default shell is unknown.")
         rc_file = "~/.bashrc" if "bash" in cls.DEFAULT_SHELL else "~/.zshrc"
         bash_path = (
             f"bash {bash_path}"
-            if job_system == Shell.JobType.MultiThreading
+            if job_system == ServerSystem.JobType.MultiThreading
             else f"source {rc_file} && qsub {bash_path}"
         )
         process = Popen(
@@ -140,7 +136,7 @@ class Shell:
     def _watch_job(cls, job: Shell._Job):
         """Watches a single job and executes its callback function when it finishes."""
         while not job.callback_executed:
-            if job.job_system == Shell.JobType.PBS:
+            if job.job_system == ServerSystem.JobType.PBS:
                 cls._handle_pbs_job(job)
             else:
                 cls._handle_generic_job(job)

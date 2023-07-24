@@ -13,7 +13,8 @@ from celline.DB.model import GSM, GSE, SRR
 from celline.config import Config
 from celline.utils.path import Path
 from celline.template import TemplateManager
-from celline.middleware import ThreadObservable, Shell
+from celline.middleware import ThreadObservable
+from celline.server import ServerSystem
 
 if TYPE_CHECKING:
     from celline import Project
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
 class Download(CellineFunction):
     """
-    Download data into your project.
+    #### Download data into your project.
     """
 
     class JobContainer(NamedTuple):
@@ -41,20 +42,12 @@ class Download(CellineFunction):
 
     def __init__(
         self,
-        job_mode: Shell.JobType = Shell.JobType.MultiThreading,
         then: Optional[Callable[[str], None]] = None,
         catch: Optional[Callable[[subprocess.CalledProcessError], None]] = None,
-        cluster_server: Optional[str] = None,
     ) -> None:
         """
-        Initialize the Download function with job mode and thread count.
+        #### Setup download job function with job mode and thread count.
         """
-        if job_mode == Shell.JobType.PBS and cluster_server is None:
-            raise SyntaxError(
-                "If you use PBS system, please define the cluster server."
-            )
-        self.job_mode = job_mode
-        self.cluster_server = cluster_server
         self.nthread = 1
         self.then = then if then is not None else lambda _: None
         self.catch = catch if catch is not None else lambda _: None
@@ -82,8 +75,8 @@ class Download(CellineFunction):
                         filetype=filetype,
                         nthread=str(self.nthread),
                         cluster_server=""
-                        if self.cluster_server is None
-                        else self.cluster_server,
+                        if ServerSystem.cluster_server_name is None
+                        else ServerSystem.cluster_server_name,
                         jobname="Download",
                         logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
                         sample_id=sample,
@@ -94,5 +87,5 @@ class Download(CellineFunction):
                     replaced_path=f"{path.resources_sample_src}/download.sh",
                 )
                 all_job_files.append(f"{path.resources_sample_src}/download.sh")
-            ThreadObservable.call_shell(all_job_files)
+        ThreadObservable.call_shell(all_job_files).watch()
         return project
