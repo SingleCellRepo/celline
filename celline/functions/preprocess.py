@@ -63,7 +63,7 @@ class Preprocess(CellineFunction):
         ]:
             src_file = f"{sample.path.data_sample_src}/preprocess.sh"
             TemplateManager.replace_from_file(
-                f"{Config.EXEC_ROOT}/templates/preprocess.sh",
+                "preprocess.sh",
                 Preprocess.JobContainer(
                     cluster_server=self.cluster_server
                     if self.cluster_server is not None

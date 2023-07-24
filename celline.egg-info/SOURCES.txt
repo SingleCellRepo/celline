@@ -4,6 +4,7 @@ README.md
 dumped_filename.txt
 pyproject.toml
 setup.py
+test.txt
 celline/__init__.py
 celline/config.py
 celline/interfaces.py

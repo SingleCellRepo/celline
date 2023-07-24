@@ -26,3 +26,4 @@ umap-learn==0.5.3
 urllib3==1.26.16
 xmltodict==0.13.0
 zipp==3.15.0
+varname==0.11.1

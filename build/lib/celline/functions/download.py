@@ -70,7 +70,7 @@ class Download(CellineFunction):
                 path = Path(gsm_schema.parent_gse_id, sample)
                 path.prepare()
                 TemplateManager.replace_from_file(
-                    file_path=f"{Config.EXEC_ROOT}/templates/download.sh",
+                    file_name="download.sh",
                     structure=Download.JobContainer(
                         filetype=filetype,
                         nthread=str(self.nthread),
