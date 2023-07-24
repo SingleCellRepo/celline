@@ -6,12 +6,24 @@ import os
 import yaml
 
 
+def get_r_path():
+    try:
+        r_path = subprocess.check_output(["which", "R"]).decode().strip()
+    except subprocess.CalledProcessError:
+        r_path = ""
+    return r_path
+
+
 class CustomInstallCommand(install):
     """Custom command to prompt user for R path and install R packages"""
 
     def run(self):
         # ユーザーにRのパスを尋ねる
-        r_path = input("Enter path of R (default is 'which R'): ") or "which R"
+        default_r_path = get_r_path()
+        r_path = (
+            input(f"Enter path of R (default is '{default_r_path}'): ")
+            or default_r_path
+        )
 
         # renv.yamlからRパッケージを取得する
         with open("renv.yaml", "r", encoding="utf-8") as f:

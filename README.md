@@ -42,7 +42,7 @@ Users can prepare the necessary environment for analysis, download data, and fin
 ### 1. Clone this repository.
 
 ```bash
-git clone https://github.com/SingleCellRepo/celline.git
+pip install git+https://github.com/SingleCellRepo/celline
 ```
 
 ### 2. Install.
