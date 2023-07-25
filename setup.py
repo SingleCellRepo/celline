@@ -76,7 +76,7 @@ install_requires = [
 
 setup(
     name="celline",
-    version="0.1.4",
+    version="0.1.5",
     packages=find_packages(),
     include_package_data=True,  # パッケージに非Pythonファイルを含めるために必要
     package_data={
