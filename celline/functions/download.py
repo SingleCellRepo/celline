@@ -69,23 +69,24 @@ class Download(CellineFunction):
                 filetype = srr_schema.strategy
                 path = Path(gsm_schema.parent_gse_id, sample)
                 path.prepare()
-                TemplateManager.replace_from_file(
-                    file_name="download.sh",
-                    structure=Download.JobContainer(
-                        filetype=filetype,
-                        nthread=str(self.nthread),
-                        cluster_server=""
-                        if ServerSystem.cluster_server_name is None
-                        else ServerSystem.cluster_server_name,
-                        jobname="Download",
-                        logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
-                        sample_id=sample,
-                        download_target=path.resources_sample_raw,
-                        download_source=srr_schema.raw_link,
-                        run_ids_str=gsm_schema.child_srr_ids,
-                    ),
-                    replaced_path=f"{path.resources_sample_src}/download.sh",
-                )
-                all_job_files.append(f"{path.resources_sample_src}/download.sh")
+                if not path.is_downloaded:
+                    TemplateManager.replace_from_file(
+                        file_name="download.sh",
+                        structure=Download.JobContainer(
+                            filetype=filetype,
+                            nthread=str(self.nthread),
+                            cluster_server=""
+                            if ServerSystem.cluster_server_name is None
+                            else ServerSystem.cluster_server_name,
+                            jobname="Download",
+                            logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
+                            sample_id=sample,
+                            download_target=path.resources_sample_raw,
+                            download_source=srr_schema.raw_link,
+                            run_ids_str=gsm_schema.child_srr_ids,
+                        ),
+                        replaced_path=f"{path.resources_sample_src}/download.sh",
+                    )
+                    all_job_files.append(f"{path.resources_sample_src}/download.sh")
         ThreadObservable.call_shell(all_job_files).watch()
         return project
