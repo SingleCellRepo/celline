@@ -118,6 +118,7 @@ plt <-
     )
 """
         self.r(cmd)
+        return ggplot(self.r)
 
     def VlnPlot(
         self,
@@ -196,3 +197,4 @@ plt <-
     )
 """
         )
+        return ggplot(self.r)
