@@ -1,6 +1,6 @@
 import os
 
-from typing import Optional
+from typing import Optional, List
 
 import pyper as pr
 import pandas as pd
@@ -24,7 +24,6 @@ class Seurat:
         print(f"Using R: {Setting.r_path}")
         self.r = pr.R(RCMD=Setting.r_path, use_pandas=True)
         self.r.assign("h5seurat_path", f"{seurat_path}")
-        # log = r.run(f'source("{Config.EXEC_ROOT}/celline/data/hook/loadSeurat.R"')
         self.r("pacman::p_load(Seurat, SeuratDisk, tidyverse)")
         print("Loading seurat")
         if via_seurat_disk:
@@ -59,3 +58,141 @@ class Seurat:
         )
         print(log[1:])
         return ggplot(self.r)
+
+    def DotPlot(
+        self,
+        features: List[str],
+        assay: Optional[str] = None,
+        cols: Optional[List[str]] = None,
+        col_min: float = -2.5,
+        col_max: float = 2.5,
+        dot_min=0,
+        dot_scale=6,
+        idents: Optional[str] = None,
+        group_by: Optional[str] = None,
+        split_by: Optional[str] = None,
+        cluster_idents=False,
+        scale=True,
+        scale_by="radius",
+        scale_min: Optional[float] = None,
+        scale_max: Optional[float] = None,
+    ):
+        if features is None:
+            features = []
+        if cols is None:
+            cols = ["lightgrey", "blue"]
+        self.r.assign("features", features)
+        self.r.assign("assay", assay)
+        self.r.assign("cols", cols)
+        self.r.assign("col.min", col_min)
+        self.r.assign("col.max", col_max)
+        self.r.assign("dot.min", dot_min)
+        self.r.assign("dot.scale", dot_scale)
+        self.r.assign("group.by", group_by)
+        self.r.assign("idents", idents)
+        self.r.assign("split.by", split_by)
+        self.r.assign("cluster.idents", cluster_idents)
+        self.r.assign("scale", scale)
+        self.r.assign("scale.by", scale_by)
+        self.r.assign("scale.min", scale_min)
+        self.r.assign("scale.max", scale_max)
+        cmd = """
+plt <-
+    seurat %>%
+    Seurat::DotPlot(
+        assay = assay,
+        features,
+        cols = cols),
+        col.min = col.min,
+        col.max = col.max,
+        dot.min = dot.min,
+        dot.scale = dot.scale,
+        idents = idents,
+        group.by = group.by,
+        split.by = split.by,
+        cluster.idents = cluster.idents,
+        scale = scale,
+        scale.by = scale.by,
+        scale.min = scale.min,
+        scale.max = scale.max
+    )
+"""
+        self.r(cmd)
+
+    def VlnPlot(
+        self,
+        features: List[str],
+        cols: Optional[List[str]] = None,
+        pt_size: Optional[float] = None,
+        alpha: float = 1,
+        idents: Optional[List[str]] = None,
+        sort=False,
+        assay: Optional[str] = None,
+        group_by: Optional[str] = None,
+        split_by: Optional[str] = None,
+        adjust: float = 1,
+        y_max: Optional[float] = None,
+        same_y_lims=False,
+        log=False,
+        ncol: Optional[int] = None,
+        layer="data",
+        split_plot=False,
+        stack=False,
+        combine=True,
+        fill_by="feature",
+        flip=False,
+        add_noise=True,
+        raster: Optional[bool] = None,
+    ):
+        self.r.assign("features", features)
+        self.r.assign("cols", cols)
+        self.r.assign("pt.size", pt_size)
+        self.r.assign("alpha", alpha)
+        self.r.assign("idents", idents)
+        self.r.assign("sort", sort)
+        self.r.assign("assay", assay)
+        self.r.assign("group.by", group_by)
+        self.r.assign("split.by", split_by)
+        self.r.assign("adjust", adjust)
+        self.r.assign("y.max", y_max)
+        self.r.assign("same.y.lims", same_y_lims)
+        self.r.assign("log", log)
+        self.r.assign("ncol", ncol)
+        self.r.assign("layer", layer)
+        self.r.assign("split.plot", split_plot)
+        self.r.assign("stack", stack)
+        self.r.assign("combine", combine)
+        self.r.assign("fill.by", fill_by)
+        self.r.assign("flip", flip)
+        self.r.assign("add.noise", add_noise)
+        self.r.assign("raster", raster)
+        self.r(
+            """
+plt <-
+    seurat %>%
+    Seurat::VlnPlot(
+        features,
+        cols = cols,
+        pt.size = pt.size,
+        alpha = alpha,
+        idents = idents,
+        sort = sort,
+        assay = assay,
+        group.by = group.by,
+        split.by = split.by,
+        adjust = adjust,
+        y.max = y.max,
+        same.y.lims = same.y.lims,
+        log = log,
+        ncol = ncol,
+        layer = layer,
+        split.plot = split.plot,
+        stack = stack,
+        combine = combine,
+        fill.by = fill.by,
+        flip = flip,
+        add.noise = add.noise,
+        raster = raster
+    )
+"""
+        )
