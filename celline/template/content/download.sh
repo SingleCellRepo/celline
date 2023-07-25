@@ -8,7 +8,7 @@
 #PBS -e <logpath>
 
 ## Check command ##
-bash "~/.bashrc"
+bash "$HOME/.bashrc"
 commands=("cellranger")
 for command in "${commands[@]}"; do
   if command -v "$command" >/dev/null 2>&1; then
@@ -39,7 +39,13 @@ sample_id="<sample_id>"
 mkdir -p "<download_target>" && cd "<download_target>"
 
 if [ "$filetype" = "bam" ]; then
-    wget "<download_source>" -O "$sample_id.bam"
+    if [ ! -f "$sample_id.bam" ]; then
+        wget "<download_source>" -O "$sample_id.bam"
+    fi
+
+    if [ ! -d "fastqs" ]; then
+        rm -rf "./fastqs"
+    fi
     cellranger bamtofastq --nthreads=<nthread> "$sample_id.bam" "./fastqs"
 
 elif [ "$filetype" = "fastq" ]; then
