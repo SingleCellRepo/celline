@@ -8,6 +8,7 @@
 #PBS -e <logpath>
 
 ## Check command ##
+source "~/.bashrc"
 commands=("cellranger")
 for command in "${commands[@]}"; do
   if command -v "$command" >/dev/null 2>&1; then

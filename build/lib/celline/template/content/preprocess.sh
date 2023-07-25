@@ -7,6 +7,7 @@
 #PBS -m ae
 #PBS -e <logpath>
 
+source "~/.bashrc"
 raw_matrix_path=<raw_matrix_path>
 output_path=<output_path>
 
