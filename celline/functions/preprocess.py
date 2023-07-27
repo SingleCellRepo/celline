@@ -32,7 +32,7 @@ class Preprocess(CellineFunction):
         output_doublet_path: str
         output_qc_path: str
         py_path: str
-        proj_root: str
+        exec_root: str
         r_path: str
         log_path: str
 
@@ -73,8 +73,8 @@ class Preprocess(CellineFunction):
                     output_doublet_path=f"{sample.path.data_sample}/doublet_info.tsv",
                     output_qc_path=f"{sample.path.data_sample}/qc_matrix.tsv",
                     raw_matrix_path=f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5",
-                    py_path=sys.base_prefix,
-                    proj_root=Config.PROJ_ROOT,
+                    py_path=sys.executable,
+                    exec_root=f"{Config.EXEC_ROOT}/celline",
                     r_path=Setting.r_path,
                     log_path=f"{sample.path.data_sample_log}/qc_matrix.R.log",
                 ),

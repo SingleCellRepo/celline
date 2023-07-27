@@ -47,6 +47,13 @@ if [ "$filetype" = "bam" ]; then
         rm -rf "./fastqs"
     fi
     cellranger bamtofastq --nthreads=<nthread> "$sample_id.bam" "./fastqs"
+    find "./fastqs" -type f -name "bamtofastq_*.fastq.gz" | while read file
+    do
+        base_name=$(basename "$file" | sed 's/bamtofastq_//')
+        dir_name=$(dirname "$file")
+        new_file_name="${sample_id}_${base_name}"
+        mv "$file" "$dir_name/$new_file_name"
+    done
 
 elif [ "$filetype" = "fastq" ]; then
     parent_dir="$(pwd)/fastqs"
@@ -97,3 +104,4 @@ else
     echo "[ERROR] Input should be 'bam' or 'fastqs'"
     exit 1
 fi
+

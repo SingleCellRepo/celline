@@ -9,7 +9,5 @@
 
 bash "$HOME/.bashrc"
 raw_matrix_path=<raw_matrix_path>
-output_path=<output_path>
-
-<py_path> "<proj_root>/templates/hook/py/preprocess_scrublet.py" $raw_matrix_path $output_path
-<r_path> "<proj_root>/templates/hook/R/FilterGenes.R" $raw_matrix_path <output_qc_path> <log_path>
+<py_path> "<exec_root>/templates/hook/py/preprocess_scrublet.py" $raw_matrix_path <output_doublet_path>
+<r_path> "<exec_root>/templates/hook/R/FilterGenes.R" $raw_matrix_path <output_qc_path> <log_path>
