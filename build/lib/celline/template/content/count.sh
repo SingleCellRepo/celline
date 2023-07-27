@@ -8,7 +8,7 @@
 #PBS -e <logpath>
 
 ## Check command ##
-bash "$HOME/.bashrc"
+source "$HOME/.bashrc"
 commands=("cellranger")
 for command in "${commands[@]}"; do
   if command -v "$command" >/dev/null 2>&1; then
@@ -21,8 +21,9 @@ done
 ##################
 
 cd <dist_dir>
+rm -rf "./counted"
 cellranger count\
-    --id=<sample_id> \
+    --id=counted \
     --fastqs=<fq_path> \
     --sample=<sample_id> \
     --transcriptome=<transcriptome> \

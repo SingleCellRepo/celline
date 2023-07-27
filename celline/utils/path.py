@@ -88,8 +88,6 @@ class Path:
             os.makedirs(self.resources_sample_log, exist_ok=True)
         if not os.path.isdir(self.resources_sample_src):
             os.makedirs(self.resources_sample_src, exist_ok=True)
-        if not os.path.isdir(self.resources_sample_counted):
-            os.makedirs(self.resources_sample_counted, exist_ok=True)
         if not os.path.isdir(self.data_sample_log):
             os.makedirs(self.data_sample_log, exist_ok=True)
         if not os.path.isdir(self.data_sample_src):

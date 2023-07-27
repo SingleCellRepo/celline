@@ -75,7 +75,7 @@ class Preprocess(CellineFunction):
                     raw_matrix_path=f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5",
                     py_path=sys.executable,
                     exec_root=f"{Config.EXEC_ROOT}/celline",
-                    r_path=Setting.r_path,
+                    r_path=f"{Setting.r_path}script",
                     log_path=f"{sample.path.data_sample_log}/qc_matrix.R.log",
                 ),
                 replaced_path=src_file,

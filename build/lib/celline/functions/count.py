@@ -82,7 +82,7 @@ class Count(CellineFunction):
                         logpath=path.resources_log_file("count"),
                         sample_id=sample,
                         fq_path=path.resources_sample_raw_fastqs,
-                        dist_dir=path.resources_sample_counted,
+                        dist_dir=path.resources_sample,
                         transcriptome=transcriptome,
                     ),
                     replaced_path=f"{path.resources_sample_src}/count.sh",
