@@ -43,7 +43,7 @@ if [ "$filetype" = "bam" ]; then
         wget "<download_source>" -O "$sample_id.bam"
     fi
 
-    if [ ! -d "fastqs" ]; then
+    if [ -d "fastqs" ]; then
         rm -rf "./fastqs"
     fi
     cellranger bamtofastq --nthreads=<nthread> "$sample_id.bam" "./fastqs"

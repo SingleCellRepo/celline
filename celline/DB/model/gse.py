@@ -2,7 +2,7 @@
 from enum import Enum, unique
 import polars as pl
 from typing import Callable, List, Final, NamedTuple, Type, TypeVar
-from celline.DB.dev.model import BaseModel
+from celline.DB.dev.model import BaseModel, Primary
 from pysradb.sraweb import SRAweb
 from pprint import pprint
 from varname import nameof
@@ -14,7 +14,7 @@ class GSE(BaseModel):
     DB: Final[SRAweb] = SRAweb()
 
     class Schema(NamedTuple):
-        accession_id: str
+        accession_id: Primary[str]
         title: str
         summary: str
         child_gsm_ids: str
@@ -32,8 +32,8 @@ class GSE(BaseModel):
             self.df.filter(self.plptr(GSE.Schema.accession_id) == gse_id).shape[0]
         ) != 0
 
-    def search(self, gse_id: str) -> Schema:
-        if self.exist(gse_id):
+    def search(self, gse_id: str, force_search=False) -> Schema:
+        if self.exist(gse_id) and not force_search:
             return self.as_schema(
                 GSE.Schema,
                 self.df.filter(self.plptr(GSE.Schema.accession_id) == gse_id).head(1),

@@ -1,7 +1,7 @@
 import os
 import shutil
 from celline.config import Config
-from typing import Final
+from typing import Final, List
 import datetime
 import glob
 
@@ -70,20 +70,22 @@ class Path:
             f"{self.sample_id}_S1_L00*_{suffix}_001.fastq.gz"
             for suffix in ["R1", "R2", "I1", "I2"]
         ]
-        total_files = 0
-        for pattern in patterns:
-            files = glob.glob(os.path.join(self.resources_sample_raw_fastqs, pattern))
-            total_files += len(files)
 
-        if 2 <= total_files <= 4:
-            return True
-        return False
+        all_files: List[bool] = []
+        for file in glob.glob(f"{self.resources_sample_raw_fastqs}/*"):
+            total_files = 0
+            for pattern in patterns:
+                files = glob.glob(os.path.join(file, pattern))
+                total_files += len(files)
+            if 2 <= total_files:
+                all_files.append(True)
+            else:
+                all_files.append(False)
+        return all(all_files)
 
     def prepare(self):
         if not os.path.isdir(self.resources_sample_raw):
             os.makedirs(self.resources_sample_raw, exist_ok=True)
-        if not self.is_downloaded:
-            shutil.rmtree(self.resources_sample_raw_fastqs, ignore_errors=True)
         if not os.path.isdir(self.resources_sample_log):
             os.makedirs(self.resources_sample_log, exist_ok=True)
         if not os.path.isdir(self.resources_sample_src):

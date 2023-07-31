@@ -9,6 +9,8 @@ from typing import (
     get_type_hints,
     Callable,
     Optional,
+    get_origin,
+    get_args,
 )
 from celline.utils.exceptions import NullPointException
 import polars as pl
@@ -16,6 +18,9 @@ import polars as pl
 # from celline.config import Config
 from abc import ABCMeta, abstractmethod
 import os
+
+from pprint import pprint
+from polars import Expr
 
 ## Type vars #############
 T = TypeVar("T")
@@ -28,6 +33,27 @@ T6 = TypeVar("T6")
 T7 = TypeVar("T7")
 T8 = TypeVar("T8")
 ##########################
+
+
+class Primary(Generic[T]):
+    """As primary key"""
+
+    def __init__(self, value: T = None):
+        self._value = value
+
+    def __get__(self, instance, owner):
+        return self._value
+
+    def __set__(self, instance, value: T):
+        self._value = value
+
+
+class MultiplePrimaryKeysError(Exception):
+    pass
+
+
+class NoPrimaryKeyError(Exception):
+    pass
 
 
 class BaseModel(metaclass=ABCMeta):
@@ -143,12 +169,33 @@ class BaseModel(metaclass=ABCMeta):
     ) -> List[T]:
         if df is None:
             df = self.df
-        return [schema_def(*t) for t in df.to_pandas().itertuples(index=False)]
+
+        type_hints = get_type_hints(schema_def)
+
+        data = df.to_pandas().itertuples(index=False)
+        return [
+            schema_def(
+                *(
+                    Primary(val) if get_origin(type_hint) is Primary else val
+                    for val, type_hint in zip(t, type_hints.values())
+                )
+            )
+            for t in data
+        ]
 
     def get(self, target_schema: Type[T], filter_func: Callable[[T], bool]) -> List[T]:
+        type_hints = get_type_hints(target_schema)
+
+        data = self.df.to_pandas().itertuples(index=False)
         result: List[T] = []
         for schema_each in [
-            target_schema(*t) for t in self.df.to_pandas().itertuples(index=False)
+            target_schema(
+                *(
+                    Primary(val) if get_origin(type_hint) is Primary else val
+                    for val, type_hint in zip(t, type_hints.values())
+                )
+            )
+            for t in data
         ]:
             if filter_func(schema_each):
                 result.append(schema_each)
@@ -189,15 +236,46 @@ class BaseModel(metaclass=ABCMeta):
         return pl.col(tname)
 
     def as_dataframe(self, schema_instance: NamedTuple) -> pl.DataFrame:
+        type_hints = get_type_hints(schema_instance)
+        for field, type_hint in type_hints.items():
+            if get_origin(type_hint) is Primary:
+                type_hints[field] = get_args(type_hint)[0]  # Replace Primary[T] with T
+
         return pl.DataFrame(
             {
                 field: [getattr(schema_instance, field)]
                 for field in schema_instance._fields
             },
-            schema=get_type_hints(self.schema),
+            schema=type_hints,
         )
 
-    def add_schema(self, schema_instance: NamedTuple):
+    # def add_schema(self, schema_instance: NamedTuple):
+    #     newdata = self.as_dataframe(schema_instance)
+    #     self.df = pl.concat([self.df, newdata])
+    #     self.flush()
+    #     return self.as_schema(self.schema, newdata)[0]
+
+    def add_schema(self, schema_instance: NamedTuple, force_update: bool = True):
+        primary_fields = [
+            field
+            for field in schema_instance._fields
+            if get_origin(get_type_hints(schema_instance)[field]) is Primary
+        ]
+        if not primary_fields:
+            raise NoPrimaryKeyError("No primary key found.")
+
+        if len(primary_fields) > 1:
+            raise MultiplePrimaryKeysError("Multiple primary keys found.")
+
+        mask: Expr = pl.lit(True)
+        if force_update:
+            for primary_field in primary_fields:
+                primary_val = getattr(schema_instance, primary_field)
+                mask &= pl.col(primary_field) == primary_val
+
+            if self.df.filter(mask).shape[0] > 0:
+                self.df = self.df.filter(~mask)
+
         newdata = self.as_dataframe(schema_instance)
         self.df = pl.concat([self.df, newdata])
         self.flush()
@@ -213,10 +291,6 @@ class BaseModel(metaclass=ABCMeta):
     @property
     def stored(self) -> pl.DataFrame:
         return self.df
-
-
-class Primary(Generic[T1]):
-    """Set Primary"""
 
 
 class Ref(Generic[T2]):
