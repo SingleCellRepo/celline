@@ -31,11 +31,4 @@ class Transcriptome(BaseModel):
         if (cls.search_path(species) is not None) and (not force_update):
             print(f"Transcriptome of {species} is already exists.")
             return
-        # pprint(
-        #     [
-        #         d.species
-        #         for d in obj.get(Transcriptome.Schema, lambda d: d.species != "")
-        #     ]
-        # )
-        # TODO: 追加しているはずなのにNot foundになるのなーぜなーぜ？
         obj.add_schema(Transcriptome.Schema(species=species, built_path=built_path))

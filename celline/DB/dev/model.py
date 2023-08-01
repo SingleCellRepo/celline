@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import (
     List,
     Dict,
@@ -42,10 +43,12 @@ class Primary(Generic[T]):
         self._value = value
 
     def __get__(self, instance, owner):
+        if instance is None:
+            return self
         return self._value
 
     def __set__(self, instance, value: T):
-        self._value = value
+        instance.__dict__[self] = value
 
 
 class MultiplePrimaryKeysError(Exception):
@@ -191,7 +194,7 @@ class BaseModel(metaclass=ABCMeta):
         for schema_each in [
             target_schema(
                 *(
-                    Primary(val) if get_origin(type_hint) is Primary else val
+                    val if get_origin(type_hint) is Primary else val
                     for val, type_hint in zip(t, type_hints.values())
                 )
             )
