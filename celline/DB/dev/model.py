@@ -83,7 +83,12 @@ class BaseModel(metaclass=ABCMeta):
         else:
             self.df = pl.DataFrame(
                 {},
-                schema={name: t for name, t in get_type_hints(self.Schema).items()},
+                schema={
+                    name: get_args(t)[0]
+                    if hasattr(t, "__origin__") and t.__origin__ is Primary
+                    else t
+                    for name, t in get_type_hints(self.Schema).items()
+                },
             )
             self.df.write_parquet(self.PATH)
 
