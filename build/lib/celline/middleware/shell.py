@@ -8,6 +8,7 @@ import subprocess
 from subprocess import Popen, PIPE
 from typing import Optional, Callable, Final, List
 from enum import Enum
+import polars as pl
 
 from celline.server.setting import ServerSystem
 
@@ -145,30 +146,30 @@ class Shell:
     @classmethod
     def _handle_pbs_job(cls, job: Shell._Job):
         """Handles watching a PBS job, checking its status and executing its callback function when it finishes."""
-        p = subprocess.Popen(
+        with subprocess.Popen(
             "qstat",
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             executable=cls.DEFAULT_SHELL,
-        )
-        stdout, _ = p.communicate()
-        if job.job_id is None:
-            job_status = None
-        else:
-            job_status = re.search(
-                rf"\b{re.escape(job.job_id)}\b.*\b(R|Q|C)\b",
-                stdout.decode("utf-8"),
-            )
-        if not job_status or "C" in job_status.group():
-            if job_status and "C" in job_status.group():
-                job.set_job_state(
-                    returncode=0, output=stdout, error=None, finished=True
-                )
-            else:
-                job.set_job_state(
-                    returncode=1, output=None, error=stdout, finished=True
-                )
+        ) as p:
+            stdout, _ = p.communicate()
+        job_status = False
+        if job.job_id is not None:
+            data = stdout.decode().split("\n")
+            data_rows = data[2:-1]  # 先頭のヘッダと末尾の空行を除く
+            header = ["Job ID", "Name", "User", "Time Use", "S", "Queue"]
+            data_rows = [row.split() for row in data_rows]
+            data_dict = {
+                header[i]: [row[i] for row in data_rows] for i in range(len(header))
+            }
+            status_df = pl.DataFrame(data_dict)
+            filtered_df = status_df.filter(pl.col("Job ID").str.contains(job.job_id))
+            if filtered_df.shape[0] > 0:
+                if filtered_df.get_column("S").str.contains("[RQ]").sum() > 0:
+                    job_status = True
+        if not job_status:
+            job.set_job_state(returncode=0, output=stdout, error=None, finished=True)
 
     @classmethod
     def _handle_generic_job(cls, job: Shell._Job):
