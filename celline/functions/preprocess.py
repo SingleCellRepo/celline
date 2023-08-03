@@ -1,6 +1,7 @@
 from __future__ import annotations
 import sys
 import subprocess
+import os
 
 from typing import TYPE_CHECKING, NamedTuple, Callable, Optional, Final, List
 
@@ -62,24 +63,28 @@ class Preprocess(CellineFunction):
             sample for sample in Resources.all_samples() if not sample.preprocessed
         ]:
             src_file = f"{sample.path.data_sample_src}/preprocess.sh"
-            TemplateManager.replace_from_file(
-                "preprocess.sh",
-                Preprocess.JobContainer(
-                    cluster_server=self.cluster_server
-                    if self.cluster_server is not None
-                    else "",
-                    jobname=f"Preprocess_{sample.sample_id}",
-                    logpath=sample.path.data_log_file("preproc"),
-                    output_doublet_path=f"{sample.path.data_sample}/doublet_info.tsv",
-                    output_qc_path=f"{sample.path.data_sample}/qc_matrix.tsv",
-                    raw_matrix_path=f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5",
-                    py_path=sys.executable,
-                    exec_root=f"{Config.EXEC_ROOT}/celline",
-                    r_path=f"{Setting.r_path}script",
-                    log_path=f"{sample.path.data_sample_log}/qc_matrix.R.log",
-                ),
-                replaced_path=src_file,
-            )
-            all_job_files.append(src_file)
+            if not (
+                os.path.isfile(f"{sample.path.data_sample}/doublet_info.tsv")
+                and os.path.isfile(f"{sample.path.data_sample}/qc_matrix.tsv")
+            ):
+                TemplateManager.replace_from_file(
+                    "preprocess.sh",
+                    Preprocess.JobContainer(
+                        cluster_server=self.cluster_server
+                        if self.cluster_server is not None
+                        else "",
+                        jobname=f"Preprocess_{sample.sample_id}",
+                        logpath=sample.path.data_log_file("preproc"),
+                        output_doublet_path=f"{sample.path.data_sample}/doublet_info.tsv",
+                        output_qc_path=f"{sample.path.data_sample}/qc_matrix.tsv",
+                        raw_matrix_path=f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5",
+                        py_path=sys.executable,
+                        exec_root=f"{Config.EXEC_ROOT}/celline",
+                        r_path=f"{Setting.r_path}script",
+                        log_path=f"{sample.path.data_sample_log}/qc_matrix.R.log",
+                    ),
+                    replaced_path=src_file,
+                )
+                all_job_files.append(src_file)
         ThreadObservable.call_shell(all_job_files).watch()
         return project

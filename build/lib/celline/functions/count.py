@@ -71,22 +71,23 @@ class Count(CellineFunction):
                     raise LookupError(
                         f"Could not find transcriptome of {gsm_schema.species}. Please add or build & register transcriptomes using celline.DB.model.Transcriptome.add_path(species: str, built_path: str) or build(species: str, ...)"
                     )
-                TemplateManager.replace_from_file(
-                    file_name="count.sh",
-                    structure=Count.JobContainer(
-                        nthread=str(self.nthread),
-                        cluster_server=""
-                        if self.cluster_server is None
-                        else self.cluster_server,
-                        jobname="Count",
-                        logpath=path.resources_log_file("count"),
-                        sample_id=sample,
-                        fq_path=path.resources_sample_raw_fastqs,
-                        dist_dir=path.resources_sample,
-                        transcriptome=transcriptome,
-                    ),
-                    replaced_path=f"{path.resources_sample_src}/count.sh",
-                )
-                all_job_files.append(f"{path.resources_sample_src}/count.sh")
+                if not os.path.isdir(f"{path.resources_sample_counted}/outs"):
+                    TemplateManager.replace_from_file(
+                        file_name="count.sh",
+                        structure=Count.JobContainer(
+                            nthread=str(self.nthread),
+                            cluster_server=""
+                            if self.cluster_server is None
+                            else self.cluster_server,
+                            jobname="Count",
+                            logpath=path.resources_log_file("count"),
+                            sample_id=sample,
+                            fq_path=path.resources_sample_raw_fastqs,
+                            dist_dir=path.resources_sample,
+                            transcriptome=transcriptome,
+                        ),
+                        replaced_path=f"{path.resources_sample_src}/count.sh",
+                    )
+                    all_job_files.append(f"{path.resources_sample_src}/count.sh")
         ThreadObservable.call_shell(all_job_files).watch()
         return project
