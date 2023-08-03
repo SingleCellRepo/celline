@@ -6,7 +6,6 @@ from celline.config import Config
 class TemplateManager:
     @staticmethod
     def replace_from_file(file_name: str, structure: NamedTuple, replaced_path: str):
-        print(f"Using {Config.EXEC_ROOT}")
         with open(
             f"{Config.EXEC_ROOT}/celline/template/content/{file_name}",
             "r",

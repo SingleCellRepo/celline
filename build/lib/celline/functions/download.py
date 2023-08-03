@@ -2,6 +2,8 @@ from enum import Enum
 import os
 import subprocess
 import datetime
+import shutil
+
 from typing import Dict, Optional, TYPE_CHECKING, NamedTuple, Callable, List
 
 import polars as pl
@@ -70,6 +72,7 @@ class Download(CellineFunction):
                 path = Path(gsm_schema.parent_gse_id, sample)
                 path.prepare()
                 if not path.is_downloaded:
+                    shutil.rmtree(path.resources_sample_raw_fastqs)
                     TemplateManager.replace_from_file(
                         file_name="download.sh",
                         structure=Download.JobContainer(

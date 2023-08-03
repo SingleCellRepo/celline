@@ -1,11 +1,12 @@
 import os
 from typing import NamedTuple, Type
-from celline.DB.dev.model import BaseModel
+from celline.DB.dev.model import BaseModel, Primary
+from pprint import pprint
 
 
 class Transcriptome(BaseModel):
     class Schema(NamedTuple):
-        species: str
+        species: Primary[str]
         built_path: str
 
     def set_class_name(self) -> str:
@@ -23,11 +24,11 @@ class Transcriptome(BaseModel):
         return None
 
     @classmethod
-    def add_path(cls, species: str, built_path: str):
+    def add_path(cls, species: str, built_path: str, force_update=True):
         obj = Transcriptome()
         if not os.path.isdir(built_path):
-            print(f"If built_path is not exist. {built_path}")
-        if cls.search_path(species) is not None:
+            print(f"Built_path does not exist. {built_path}")
+        if (cls.search_path(species) is not None) and (not force_update):
             print(f"Transcriptome of {species} is already exists.")
             return
         obj.add_schema(Transcriptome.Schema(species=species, built_path=built_path))

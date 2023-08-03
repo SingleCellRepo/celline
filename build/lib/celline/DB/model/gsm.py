@@ -121,7 +121,7 @@ from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, ElementTree
 import requests
 
-from celline.DB.dev.model import BaseModel
+from celline.DB.dev.model import BaseModel, Primary
 
 
 class GSM(BaseModel):
@@ -132,7 +132,7 @@ class GSM(BaseModel):
     DB: SRAweb = SRAweb()
 
     class Schema(NamedTuple):
-        accession_id: str
+        accession_id: Primary[str]
         title: str
         summary: str
         species: str
@@ -149,12 +149,12 @@ class GSM(BaseModel):
 
     BASE_REQUEST_URL: Final[str] = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc="
 
-    def search(self, gsm_id: str) -> Schema:
+    def search(self, gsm_id: str, force_search=False) -> Schema:
         """
         Search for a particular GSM id in the database.
         If it exists, returns the data, else fetches it from the GEO database.
         """
-        if self._gsm_exists(gsm_id):
+        if self._gsm_exists(gsm_id) and not force_search:
             return self._get_existing_gsm(gsm_id)
         return self._fetch_gsm_from_geo(gsm_id)
 
@@ -195,10 +195,26 @@ class GSM(BaseModel):
         """
         Get the GSM data in XML format.
         """
-        xml = requests.get(
-            f"{GSM.BASE_REQUEST_URL}{gsm_id}&targ=all&view=quick&form=xml", timeout=100
-        )
+        try:
+            xml = requests.get(
+                f"{GSM.BASE_REQUEST_URL}{gsm_id}&targ=all&view=quick&form=xml",
+                timeout=100,
+            )
+        except xml.etree.ElementTree.ParseError as err:
+            print(f"Could not find target GSM: {gsm_id}")
+            print("Tracebacks")
+            print(err)
         return ET.fromstring(xml.content.decode())
+
+    @staticmethod
+    def get_gsm_xml_structure(gsm_id: str):
+        gsm_xml = GSM._get_gsm_xml(gsm_id)
+        GSM._strip_namespace(gsm_xml)
+
+        series = gsm_xml.find("Series")
+        if series is None:
+            raise KeyError(f"Requested GSM: {gsm_id} does not exists in database.")
+        return gsm_xml
 
     @staticmethod
     def _strip_namespace(elem: Element) -> None:

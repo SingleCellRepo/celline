@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, NamedTuple, Callable, Union, Dict, Optional
+from typing import List, NamedTuple, Callable, Union, Dict, Optional, Any
 import uuid
 from functools import partial
 import time
@@ -35,8 +35,8 @@ class ThreadObservable:
         def __init__(
             self,
             script_path: str,
-            then: Callable[[str], None],
-            catch: Callable[[str], None],
+            then: Callable[[str], Optional[Any]],
+            catch: Callable[[str], Optional[Any]],
         ):
             self.script_path = script_path
             self.then = then
@@ -77,6 +77,7 @@ class ThreadObservable:
             `shell_ctrl<Union[List[str], List[ObservableShell]]>`: List of shell scripts or observable shell objects to be executed.\n
             `job_type<Shell.JobType -optional>`: Type of job execution (single-threaded or multi-threaded). Defaults to Shell.JobType.MultiThreading.
         """
+
         job_type = ServerSystem.job_system
 
         def handler(
@@ -151,6 +152,7 @@ class ThreadObservable:
                 script.job.then(partial(thenHandler, script=script)).catch(
                     partial(catchHandler, script=script)
                 )
+        cls.watch()
         return cls
 
     @classmethod
@@ -160,7 +162,46 @@ class ThreadObservable:
         Continues to check until all the jobs are done.
         """
         try:
+            # while True:
             while not cls.__queue.empty() or cls.__running_jobs:
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print(
+                "\nKeyboard interrupt received. Attempting to terminate running jobs."
+            )
+            for hashed_id, observable_shell in cls.__running_jobs.items():
+                script = observable_shell.script_path
+                job = cls.__running_jobs.get(hashed_id, None)
+                if job:
+                    # if the job is running under PBS system
+                    if job.job is not None:
+                        if (
+                            job.job.job_system == ServerSystem.JobType.PBS
+                            and job.job.job_id
+                        ):
+                            with subprocess.Popen(
+                                f"qdel {job.job.job_id}",
+                                shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                            ) as p:
+                                p.wait()
+                            print(f"├─ Terminating PBS job: {job.job.job_id}")
+                        else:
+                            # if the job is not under PBS, we simply terminate it
+                            job.job.process.terminate()
+                            print(f"├─ Terminating shell script: {script}")
+            print("└─ Exit.")
+        return cls
+
+    @classmethod
+    def wait(cls):
+        """
+        #### Wait for the currently running jobs to finish.
+        Continues to check until the number of running jobs is less than `_jobs`.
+        """
+        try:
+            while len(cls.__running_jobs) >= cls._jobs:
                 time.sleep(0.1)
         except KeyboardInterrupt:
             print(

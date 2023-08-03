@@ -40,6 +40,8 @@ celline/functions/initialize.py
 celline/functions/interactive.py
 celline/functions/job.py
 celline/functions/preprocess.py
+celline/functions/set_transcriptome.py
+celline/functions/sync_DB.py
 celline/functions/vcount.py
 celline/middleware/__init__.py
 celline/middleware/delegate.py

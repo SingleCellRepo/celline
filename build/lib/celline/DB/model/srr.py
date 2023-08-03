@@ -78,7 +78,7 @@
 #         return newdata  # type: ignore
 from typing import Type, NamedTuple, Final, Optional, List, Dict
 from enum import Enum
-from celline.DB.dev.model import BaseModel
+from celline.DB.dev.model import BaseModel, Primary
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import ElementTree, Element
 import requests
@@ -91,7 +91,7 @@ class SRR(BaseModel):
     ] = "https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc="
 
     class Schema(NamedTuple):
-        accession_id: str
+        accession_id: Primary[str]
         strategy: str
         parent_gsm: str
         raw_link: str
@@ -125,9 +125,9 @@ class SRR(BaseModel):
             raise ValueError("Could not resolve the strategy from given file_infos.")
         return suggested_strategy
 
-    def search(self, srr_id: str) -> Schema:
+    def search(self, srr_id: str, force_search=False) -> Schema:
         """Search for SRR IDs"""
-        if self.exist(srr_id):
+        if self.exist(srr_id) and not force_search:
             return self.as_schema(
                 SRR.Schema,
                 self.df.filter(self.plptr(SRR.Schema.accession_id) == srr_id).head(1),

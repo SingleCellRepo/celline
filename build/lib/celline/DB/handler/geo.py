@@ -12,18 +12,18 @@ class GEOHandler:
     #     with open(PATH, mode="r", encoding="utf-8") as f:
     #         self.geo: GEORelation = deserialize(yaml.safe_load(f), GEORelation)  # type: ignore
     @staticmethod
-    def sync(target_gsm_id: str, log=True) -> None:
+    def sync(target_gsm_id: str, force_search=False, log=True) -> None:
         srr_instance = SRR()
-        schema = GSM().search(target_gsm_id)
+        schema = GSM().search(target_gsm_id, force_search)
         ## Read Parent
-        _ = GSE().search(schema.parent_gse_id)
+        _ = GSE().search(schema.parent_gse_id, force_search)
         ## Read Child
         ids = schema.child_srr_ids.split(",")
         cnt = 1
         for srr in ids:
             if log:
                 print(f"--> Migrating {srr} ({cnt}/{len(ids)})")
-            _ = srr_instance.search(srr)
+            _ = srr_instance.search(srr, force_search)
             cnt += 1
         # gses = gse_instance.as_schema(GSE.Schema)
         # for gse in gses:
