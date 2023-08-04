@@ -61,6 +61,7 @@ qc_model <- function(sce, subsets_varname, model_type = "linear") {
             k = 2
         )
     }
+    print(model@components)
     if (length(model@components) < 2) {
         warning(
             "Unable to identify two distributions. Use plotMetrics function\n

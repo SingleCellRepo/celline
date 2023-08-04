@@ -85,6 +85,7 @@ class Preprocess(CellineFunction):
                     ),
                     replaced_path=src_file,
                 )
+                print(src_file)
                 all_job_files.append(src_file)
         ThreadObservable.call_shell(all_job_files).watch()
         return project
