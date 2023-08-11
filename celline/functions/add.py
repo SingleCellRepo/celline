@@ -7,13 +7,11 @@ import toml
 import tqdm
 from celline.config import Config
 
-from celline.DB.handler.geo import GEOHandler
-
-# from celline.DB.model import SRA_GSE, SRA_GSM, SRA_SRR
 from celline.functions._base import CellineFunction
 from celline.utils.serialization import NamedTupleAndPolarsStructure
 
-# from rich import print
+from celline.DB.dev.handler import HandleResolver
+
 
 if TYPE_CHECKING:
     from celline import Project
@@ -91,6 +89,10 @@ class Add(CellineFunction):
         Returns:
             <Project>: The project with the added accession IDs.
         """
+        for tid in self.add_target_id:
+            resolver = HandleResolver.resolve(tid.id_name)
+            if resolver is not None:
+                resolver.add(tid.id_name)
         # cnt = 0
         # for sample in tqdm.tqdm(self.add_target_id):
         #     if sample.id_name.startswith("GSE"):

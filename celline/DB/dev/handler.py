@@ -112,7 +112,6 @@ class BaseHandler(Generic[TProject, TSample, TRun], ABC):
             if sample.title is None:
                 sample.title = ""
             self._add_to_projsample({str(sample.key): sample.title})
-        # raise ModuleNotFoundError(f"Could not found target resolver: {resolver}")
 
     def sync(self, force_research=False):
         """Sync DB from samples.toml"""
@@ -129,15 +128,14 @@ class BaseHandler(Generic[TProject, TSample, TRun], ABC):
         self._flush_to_append(
             list(str(k) for k in sample_info.keys())[0], list(sample_info.values())[0]
         )
-        return
 
     def _flush_to_append(self, sample_id: str, title: str):
         if sample_id in self._samples:
             return
+        self._samples[sample_id] = title
         TEXT_TO_APPEND: Final[str] = f'\n{sample_id} = "{title}"'
         with open(BaseHandler.SAMPLE_PATH, mode="a", encoding="utf-8") as f:
             f.write(TEXT_TO_APPEND)
-        return
 
 
 THandler = TypeVar("THandler", bound=BaseHandler)
