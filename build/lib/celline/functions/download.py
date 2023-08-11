@@ -11,7 +11,7 @@ import toml
 from pprint import pprint
 
 from celline.functions._base import CellineFunction
-from celline.DB.model import GSM, GSE, SRR
+from celline.DB.model import SRA_GSM, SRA_GSE, SRA_SRR
 from celline.config import Config
 from celline.utils.path import Path
 from celline.template import TemplateManager
@@ -66,8 +66,8 @@ class Download(CellineFunction):
             samples: Dict[str, str] = toml.load(f)
             all_job_files: List[str] = []
             for sample in samples:
-                gsm_schema = GSM().search(sample)
-                srr_schema = SRR().search(gsm_schema.child_srr_ids.split(",")[0])
+                gsm_schema = SRA_GSM().search(sample)
+                srr_schema = SRA_SRR().search(gsm_schema.child_srr_ids.split(",")[0])
                 filetype = srr_schema.strategy
                 path = Path(gsm_schema.parent_gse_id, sample)
                 path.prepare()

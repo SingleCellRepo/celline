@@ -17,6 +17,7 @@ from typing import (
     Final,
     Optional,
 )
+
 from celline.functions._base import CellineFunction
 from celline.middleware import ThreadObservable
 from celline.server import ServerSystem

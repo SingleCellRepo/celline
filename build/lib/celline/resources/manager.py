@@ -9,7 +9,7 @@ import toml
 from celline.config import Config
 from celline.utils.path import Path
 from celline.utils.serialization import NamedTupleAndPolarsStructure
-from celline.DB.model import GSM
+from celline.DB.model import SRA_GSM
 
 
 class Resources:
@@ -19,7 +19,7 @@ class Resources:
         def __init__(self, sample_id: str, sample_name: str) -> None:
             self.sample_id = sample_id
             # TODO: 現在のコードはGSM（GEO）にしか対応していないため、GEOの範疇を超えた独自のIDによる管理など、さらなる抽象化が必要。現在は暫定的にGSMを用いているが、GEO以外のDBを用いようとするとエラーになる。
-            project_id = GSM().search(sample_id).parent_gse_id
+            project_id = SRA_GSM().search(sample_id).parent_gse_id
             self.project_id = project_id
             self._name = sample_name
             self.path = Path(project_id, sample_id)

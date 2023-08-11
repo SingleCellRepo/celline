@@ -8,7 +8,7 @@ import toml
 from celline.config import Config
 from celline.functions._base import CellineFunction
 from celline.middleware import Shell, ThreadObservable
-from celline.DB.model import GSE, GSM, SRR, Transcriptome
+from celline.DB.model import SRA_GSE, SRA_GSM, SRA_SRR, Transcriptome
 from celline.utils.path import Path
 from celline.template import TemplateManager
 from celline.server import ServerSystem
@@ -62,8 +62,10 @@ class Count(CellineFunction):
             samples: Dict[str, str] = toml.load(f)
             all_job_files: List[str] = []
             for sample in samples:
-                gsm_schema = GSM().search(sample)
-                path = Path(gsm_schema.parent_gse_id, sample)
+                gsm_schema = SRA_GSM().search(sample)
+                if gsm_schema.parent is None:
+                    raise KeyError("")
+                path = Path(gsm_schema.parent, sample)
                 path.prepare()
                 transcriptome = Transcriptome.search_path(gsm_schema.species)
 

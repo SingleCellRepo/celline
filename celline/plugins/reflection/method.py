@@ -12,7 +12,6 @@ class MethodInfo:
     def __init__(self, prop: KeyValuePair[str, Any], t: type) -> None:
         self.__prop = prop
         self.__type = t
-        pass
 
     @property
     def Name(self):
@@ -27,7 +26,7 @@ class MethodInfo:
                 retval = getattr(instance, self.__prop.Key)()
         else:
             if instance is None:
-                retval = getattr(self.__type, self.__prop.Key)(args)
+                retval = getattr(self.__type, self.__prop.Key)(**args)
             else:
-                retval = getattr(instance, self.__prop.Key)(args)
+                retval = getattr(instance, self.__prop.Key)(**args)
         return retval

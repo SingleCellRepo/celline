@@ -121,61 +121,44 @@ from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, ElementTree
 import requests
 
-from celline.DB.dev.model import BaseModel, Primary
+from celline.DB.dev.model import BaseModel, Primary, BaseSchema
+from dataclasses import dataclass
 
 
-class GSM(BaseModel):
+@dataclass
+class SRA_GSM_Schema(BaseSchema):
+    summary: str
+    species: str
+    raw_link: str
+    srx_id: str
+
+
+class SRA_GSM(BaseModel[SRA_GSM_Schema]):
     """
     Class to fetch data from the Gene Expression Omnibus (GEO) database.
     """
 
     DB: SRAweb = SRAweb()
 
-    class Schema(NamedTuple):
-        accession_id: Primary[str]
-        title: str
-        summary: str
-        species: str
-        raw_link: str
-        srx_id: str
-        parent_gse_id: str
-        child_srr_ids: str
-
     def set_class_name(self) -> str:
         return __class__.__name__
 
-    def set_schema(self) -> Type[Schema]:
-        return GSM.Schema
+    def def_schema(self) -> type:
+        return SRA_GSM_Schema
 
     BASE_REQUEST_URL: Final[str] = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc="
 
-    def search(self, gsm_id: str, force_search=False) -> Schema:
+    def search(self, acceptable_id: str, force_search=False) -> SRA_GSM_Schema:
         """
         Search for a particular GSM id in the database.
         If it exists, returns the data, else fetches it from the GEO database.
         """
-        if self._gsm_exists(gsm_id) and not force_search:
-            return self._get_existing_gsm(gsm_id)
-        return self._fetch_gsm_from_geo(gsm_id)
+        cache = self.get_cache(acceptable_id, force_search)
+        if cache is not None:
+            return cache
+        return self._fetch_gsm_from_geo(acceptable_id)
 
-    def _gsm_exists(self, gsm_id: str) -> bool:
-        """
-        Check if the GSM id exists in the database.
-        """
-        return (
-            self.df.filter(self.plptr(GSM.Schema.accession_id) == gsm_id).shape[0]
-        ) != 0
-
-    def _get_existing_gsm(self, gsm_id: str) -> Schema:
-        """
-        Get existing GSM data from the database.
-        """
-        return self.as_schema(
-            GSM.Schema,
-            self.df.filter(self.plptr(GSM.Schema.accession_id) == gsm_id).head(1),
-        )[0]
-
-    def _fetch_gsm_from_geo(self, gsm_id: str) -> Schema:
+    def _fetch_gsm_from_geo(self, gsm_id: str) -> SRA_GSM_Schema:
         """
         Fetch GSM data from the GEO database.
         """
@@ -197,7 +180,7 @@ class GSM(BaseModel):
         """
         try:
             xml = requests.get(
-                f"{GSM.BASE_REQUEST_URL}{gsm_id}&targ=all&view=quick&form=xml",
+                f"{SRA_GSM.BASE_REQUEST_URL}{gsm_id}&targ=all&view=quick&form=xml",
                 timeout=100,
             )
         except xml.etree.ElementTree.ParseError as err:
@@ -208,8 +191,8 @@ class GSM(BaseModel):
 
     @staticmethod
     def get_gsm_xml_structure(gsm_id: str):
-        gsm_xml = GSM._get_gsm_xml(gsm_id)
-        GSM._strip_namespace(gsm_xml)
+        gsm_xml = SRA_GSM._get_gsm_xml(gsm_id)
+        SRA_GSM._strip_namespace(gsm_xml)
 
         series = gsm_xml.find("Series")
         if series is None:
@@ -223,7 +206,7 @@ class GSM(BaseModel):
         """
         elem.tag = elem.tag.split("}", 1)[-1] if "}" in elem.tag else elem.tag
         for child in elem:
-            GSM._strip_namespace(child)
+            SRA_GSM._strip_namespace(child)
 
     def _get_run_ids_from_srp(self, gsm_xml: ElementTree) -> str:
         """
@@ -267,7 +250,7 @@ class GSM(BaseModel):
 
     def _add_schema_to_gsm(
         self, gsm_xml: ElementTree, gsm_id: str, run_ids: str, series: Element
-    ) -> Schema:
+    ) -> SRA_GSM_Schema:
         """
         Add the Schema data to the GSM.
         """
@@ -298,14 +281,14 @@ class GSM(BaseModel):
         parent_gse_id = series.attrib["iid"] if "iid" in series.attrib else ""
 
         return self.add_schema(
-            GSM.Schema(
-                accession_id=gsm_id,
+            SRA_GSM_Schema(
+                key=gsm_id,
+                parent=parent_gse_id,
+                children=run_ids,
                 title=title,
                 summary=summary,
                 species=species,
                 raw_link=raw_link,
                 srx_id=srx_id,
-                parent_gse_id=parent_gse_id,
-                child_srr_ids=run_ids,
             )
         )

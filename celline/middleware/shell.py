@@ -14,7 +14,7 @@ from celline.server.setting import ServerSystem
 
 
 class Shell:
-    """Represents a shell environment, allowing commands to be executed either via multithreading or a PBS job system."""
+    """## Represents a shell environment, allowing commands to be executed either via multithreading or a PBS job system."""
 
     class _Job:
         """A class that represents a job to be executed in the shell."""

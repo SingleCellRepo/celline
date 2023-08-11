@@ -7,7 +7,7 @@ import tqdm
 
 from celline.config import Config
 from celline.DB.handler import GEOHandler
-from celline.DB.model import GSE, GSM, SRR
+from celline.DB.model import SRA_GSE, SRA_GSM, SRA_SRR
 from celline.functions._base import CellineFunction
 from celline.utils.serialization import NamedTupleAndPolarsStructure
 
@@ -92,11 +92,11 @@ class Add(CellineFunction):
         cnt = 0
         for sample in tqdm.tqdm(self.add_target_id):
             if sample.id_name.startswith("GSE"):
-                gse_schema = GSE().search(sample.id_name)
+                gse_schema = SRA_GSE().search(sample.id_name)
                 for gsm_id in tqdm.tqdm(
                     gse_schema.child_gsm_ids.split(","), leave=False
                 ):
-                    gsm_schema = GSM().search(gsm_id)
+                    gsm_schema = SRA_GSM().search(gsm_id)
                     given_title = self.add_target_id[cnt].title
                     sample_name = (
                         gsm_schema.title
@@ -107,7 +107,7 @@ class Add(CellineFunction):
                         sample_id=gsm_schema.accession_id, sample_name=sample_name
                     )
             elif sample.id_name.startswith("GSM"):
-                gsm_schema = GSM().search(sample.id_name)
+                gsm_schema = SRA_GSM().search(sample.id_name)
                 given_title = self.add_target_id[cnt].title
                 sample_name = (
                     gsm_schema.title

@@ -1,5 +1,5 @@
-from celline.DB.model.gse import GSE
-from celline.DB.model.gsm import GSM
-from celline.DB.model.srr import SRR
+from celline.DB.model.sra_gse import SRA_GSE
+from celline.DB.model.sra_gsm import SRA_GSM
+from celline.DB.model.sra_srr import SRA_SRR
 
 from celline.DB.model.transcriptome import Transcriptome

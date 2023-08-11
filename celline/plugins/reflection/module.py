@@ -52,6 +52,8 @@ class Module:
 
     @staticmethod
     def GetModules(dirs: str):
-        return\
-            ListC(list(glob.glob(dirs + '/**.py', recursive=True)))\
-            .Select(lambda path: Module(path.replace("\\", "/").replace("/", ".").replace(".py", "")))
+        return ListC(list(glob.glob(dirs + "/**.py", recursive=True))).Select(
+            lambda path: Module(
+                path.replace("\\", "/").replace("/", ".").replace(".py", "")
+            )
+        )

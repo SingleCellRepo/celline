@@ -13,11 +13,11 @@ class Config:
     current: str = ""
     """[Static] Current execution"""
     ## objective ##
-    EXEC_ROOT: Final[str]
+    EXEC_ROOT: Final[str] = os.path.dirname(os.path.dirname(__file__))
     PROJ_ROOT: Final[str]
 
     def __init__(self, project_root_path: str) -> None:
-        self.EXEC_ROOT = os.path.dirname(os.path.dirname(__file__))
+        # self.EXEC_ROOT = os.path.dirname(os.path.dirname(__file__))
         self.PROJ_ROOT = project_root_path
         Config.current = f"{self.EXEC_ROOT}+{self.PROJ_ROOT}"
         if Config.current not in Config.runnings:
