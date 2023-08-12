@@ -19,7 +19,7 @@ from celline.template import TemplateManager
 from celline.middleware import ThreadObservable
 from celline.server import ServerSystem
 from celline.sample import SampleResolver
-from celline.DB.dev.model import BaseModel, BaseSchema
+from celline.DB.dev.model import BaseModel, BaseSchema, RunSchema, SampleSchema
 if TYPE_CHECKING:
     from celline import Project
 
@@ -65,15 +65,18 @@ class Download(CellineFunction):
             resolver = HandleResolver.resolve(sample_id)
             if resolver is None:
                 raise ReferenceError(f"Could not resolve target sample id: {sample_id}")
-            sample_schema: BaseSchema = resolver.sample.search(sample_id)
+            sample_schema: SampleSchema = resolver.sample.search(sample_id)
             if sample_schema.children is None:
                 raise NotImplementedError("Children could not found")
-            run_schema: BaseSchema = resolver.run.search(sample_schema.children.split(",")[0])
+            run_schema: RunSchema = resolver.run.search(sample_schema.children.split(",")[0])
             filetype = run_schema.strategy
-            path = Path(gsm_schema.parent_gse_id, sample)
+            if sample_schema.parent is None:
+                raise ValueError("Sample parent must not be none")
+            path = Path(sample_schema.parent, sample_id)
             path.prepare()
             if not path.is_downloaded:
-                shutil.rmtree(path.resources_sample_raw_fastqs)
+                if os.path.exists(path.resources_sample_raw_fastqs):
+                    shutil.rmtree(path.resources_sample_raw_fastqs)
                 TemplateManager.replace_from_file(
                     file_name="download.sh",
                     structure=Download.JobContainer(
@@ -84,10 +87,10 @@ class Download(CellineFunction):
                         else ServerSystem.cluster_server_name,
                         jobname="Download",
                         logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
-                        sample_id=sample,
+                        sample_id=sample_id,
                         download_target=path.resources_sample_raw,
-                        download_source=srr_schema.raw_link,
-                        run_ids_str=gsm_schema.child_srr_ids,
+                        download_source=sample_schema.raw_link,
+                        run_ids_str=sample_schema.children,
                     ),
                     replaced_path=f"{path.resources_sample_src}/download.sh",
                 )

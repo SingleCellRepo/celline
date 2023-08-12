@@ -12,12 +12,14 @@ from pprint import pprint
 
 from celline.functions._base import CellineFunction
 from celline.DB.model import SRA_GSM, SRA_GSE, SRA_SRR
+from celline.DB.dev.handler import HandleResolver
 from celline.config import Config
 from celline.utils.path import Path
 from celline.template import TemplateManager
 from celline.middleware import ThreadObservable
 from celline.server import ServerSystem
-
+from celline.sample import SampleResolver
+from celline.DB.dev.model import BaseModel, BaseSchema, RunSchema, SampleSchema
 if TYPE_CHECKING:
     from celline import Project
 
@@ -58,38 +60,40 @@ class Download(CellineFunction):
         """
         Call the Download function to download data into the project.
         """
-        sample_info_file = f"{Config.PROJ_ROOT}/samples.toml"
-        if not os.path.isfile(sample_info_file):
-            print("sample.toml could not be found. Skipping.")
-            return project
-        with open(sample_info_file, mode="r", encoding="utf-8") as f:
-            samples: Dict[str, str] = toml.load(f)
-            all_job_files: List[str] = []
-            for sample in samples:
-                gsm_schema = SRA_GSM().search(sample)
-                srr_schema = SRA_SRR().search(gsm_schema.child_srr_ids.split(",")[0])
-                filetype = srr_schema.strategy
-                path = Path(gsm_schema.parent_gse_id, sample)
-                path.prepare()
-                if not path.is_downloaded:
+        all_job_files: List[str] = []
+        for sample_id in SampleResolver.samples:
+            resolver = HandleResolver.resolve(sample_id)
+            if resolver is None:
+                raise ReferenceError(f"Could not resolve target sample id: {sample_id}")
+            sample_schema: SampleSchema = resolver.sample.search(sample_id)
+            if sample_schema.children is None:
+                raise NotImplementedError("Children could not found")
+            run_schema: RunSchema = resolver.run.search(sample_schema.children.split(",")[0])
+            filetype = run_schema.strategy
+            if sample_schema.parent is None:
+                raise ValueError("Sample parent must not be none")
+            path = Path(sample_schema.parent, sample_id)
+            path.prepare()
+            if not path.is_downloaded:
+                if os.path.exists(path.resources_sample_raw_fastqs):
                     shutil.rmtree(path.resources_sample_raw_fastqs)
-                    TemplateManager.replace_from_file(
-                        file_name="download.sh",
-                        structure=Download.JobContainer(
-                            filetype=filetype,
-                            nthread=str(self.nthread),
-                            cluster_server=""
-                            if ServerSystem.cluster_server_name is None
-                            else ServerSystem.cluster_server_name,
-                            jobname="Download",
-                            logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
-                            sample_id=sample,
-                            download_target=path.resources_sample_raw,
-                            download_source=srr_schema.raw_link,
-                            run_ids_str=gsm_schema.child_srr_ids,
-                        ),
-                        replaced_path=f"{path.resources_sample_src}/download.sh",
-                    )
-                    all_job_files.append(f"{path.resources_sample_src}/download.sh")
+                TemplateManager.replace_from_file(
+                    file_name="download.sh",
+                    structure=Download.JobContainer(
+                        filetype=filetype,
+                        nthread=str(self.nthread),
+                        cluster_server=""
+                        if ServerSystem.cluster_server_name is None
+                        else ServerSystem.cluster_server_name,
+                        jobname="Download",
+                        logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
+                        sample_id=sample_id,
+                        download_target=path.resources_sample_raw,
+                        download_source=sample_schema.raw_link,
+                        run_ids_str=sample_schema.children,
+                    ),
+                    replaced_path=f"{path.resources_sample_src}/download.sh",
+                )
+                all_job_files.append(f"{path.resources_sample_src}/download.sh")
         ThreadObservable.call_shell(all_job_files).watch()
         return project

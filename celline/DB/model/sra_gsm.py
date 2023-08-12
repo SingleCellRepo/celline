@@ -121,15 +121,12 @@ from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, ElementTree
 import requests
 
-from celline.DB.dev.model import BaseModel, Primary, BaseSchema
+from celline.DB.dev.model import BaseModel, Primary, BaseSchema, SampleSchema
 from dataclasses import dataclass
 
 
 @dataclass
-class SRA_GSM_Schema(BaseSchema):
-    summary: str
-    species: str
-    raw_link: str
+class SRA_GSM_Schema(SampleSchema):
     srx_id: str
 
 

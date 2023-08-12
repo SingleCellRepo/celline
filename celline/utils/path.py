@@ -81,7 +81,7 @@ class Path:
                 all_files.append(True)
             else:
                 all_files.append(False)
-        return all(all_files)
+        return len(all_files) > 0 and all(all_files)
 
     def prepare(self):
         if not os.path.isdir(self.resources_sample_raw):

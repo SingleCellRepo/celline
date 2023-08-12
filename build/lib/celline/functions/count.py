@@ -12,6 +12,8 @@ from celline.DB.model import SRA_GSE, SRA_GSM, SRA_SRR, Transcriptome
 from celline.utils.path import Path
 from celline.template import TemplateManager
 from celline.server import ServerSystem
+from celline.DB.dev.handler import HandleResolver
+from celline.DB.dev.model import SampleSchema
 
 if TYPE_CHECKING:
     from celline import Project
@@ -53,7 +55,7 @@ class Count(CellineFunction):
                 "If you use PBS job system, please define cluster_server."
             )
 
-    def call(self, project: "Project"):
+    def call(self, project: "Project") -> "Project":
         sample_info_file = f"{Config.PROJ_ROOT}/samples.toml"
         if not os.path.isfile(sample_info_file):
             print("sample.toml could not be found. Skipping.")
@@ -61,15 +63,20 @@ class Count(CellineFunction):
         with open(sample_info_file, mode="r", encoding="utf-8") as f:
             samples: Dict[str, str] = toml.load(f)
             all_job_files: List[str] = []
-            for sample in samples:
-                gsm_schema = SRA_GSM().search(sample)
-                path = Path(gsm_schema.parent_gse_id, sample)
+            for sample_id in samples:
+                resolver = HandleResolver.resolve(sample_id)
+                if resolver is None:
+                    raise ReferenceError(f"Could not resolve target sample id: {sample_id}")
+                sample_schema: SampleSchema = resolver.sample.search(sample_id)
+                if sample_schema.parent is None:
+                    raise KeyError("Could not find parent")
+                path = Path(sample_schema.parent, sample_id)
                 path.prepare()
-                transcriptome = Transcriptome.search_path(gsm_schema.species)
+                transcriptome = Transcriptome.search_path(sample_schema.species)
 
                 if transcriptome is None:
                     raise LookupError(
-                        f"Could not find transcriptome of {gsm_schema.species}. Please add or build & register transcriptomes using celline.DB.model.Transcriptome.add_path(species: str, built_path: str) or build(species: str, ...)"
+                        f"Could not find transcriptome of {sample_schema.species}. Please add or build & register transcriptomes using celline.DB.model.Transcriptome.add_path(species: str, built_path: str) or build(species: str, ...)"
                     )
                 if not os.path.isdir(f"{path.resources_sample_counted}/outs"):
                     TemplateManager.replace_from_file(
@@ -81,7 +88,7 @@ class Count(CellineFunction):
                             else self.cluster_server,
                             jobname="Count",
                             logpath=path.resources_log_file("count"),
-                            sample_id=sample,
+                            sample_id=sample_id,
                             fq_path=path.resources_sample_raw_fastqs,
                             dist_dir=path.resources_sample,
                             transcriptome=transcriptome,
