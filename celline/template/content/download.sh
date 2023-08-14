@@ -51,7 +51,7 @@ if [ "$filetype" = "bam" ]; then
     if [ -d "fastqs" ]; then
         rm -rf "./fastqs"
     fi
-    cellranger bamtofastq --nthreads= "./fastqs" %nthread/ "$sample_id.bam"
+    cellranger bamtofastq --nthreads=%nthread/ "./fastqs" "$sample_id.bam"
     find "./fastqs" -type f -name "bamtofastq_*.fastq.gz" | while read file; do
         base_name=$(basename "$file" | sed 's/bamtofastq_//')
         dir_name=$(dirname "$file")
