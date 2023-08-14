@@ -1,11 +1,11 @@
 #!/bin/bash
 #PBS -S /bin/bash
-#PBS -l nodes=1:ppn=<nthread>:<cluster_server>
-#PBS -q <cluster_server>
-#PBS -N <jobname>
+#PBS -l nodes=1:ppn=$nthread$:$cluster_server$
+#PBS -q $cluster_server$
+#PBS -N $jobname$
 #PBS -j eo
 #PBS -m ae
-#PBS -e <logpath>
+#PBS -e $logpath$
 
 ## Check command ##
 if [ -e "$HOME/.bashrc" ]; then
@@ -38,20 +38,20 @@ get_median_length() {
     }'
 }
 ###################
-filetype="<filetype>"
-sample_id="<sample_id>"
+filetype="$filetype$"
+sample_id="$sample_id$"
 
-mkdir -p "<download_target>" && cd "<download_target>"
+mkdir -p "$download_target$" && cd "$download_target$"
 
 if [ "$filetype" = "bam" ]; then
     if [ ! -f "$sample_id.bam" ]; then
-        wget "<download_source>" -O "$sample_id.bam"
+        wget "$download_source$" -O "$sample_id.bam"
     fi
 
     if [ -d "fastqs" ]; then
         rm -rf "./fastqs"
     fi
-    cellranger bamtofastq --nthreads= "./fastqs" <nthread >"$sample_id.bam"
+    cellranger bamtofastq --nthreads= "./fastqs" $nthread$ "$sample_id.bam"
     find "./fastqs" -type f -name "bamtofastq_*.fastq.gz" | while read file; do
         base_name=$(basename "$file" | sed 's/bamtofastq_//')
         dir_name=$(dirname "$file")
@@ -65,7 +65,7 @@ elif [ "$filetype" = "fastq" ]; then
         mkdir -p "fastqs"
         cd "fastqs"
     fi
-    IFS=',' read -ra run_ids <<<"<run_ids_str>"
+    IFS=',' read -ra run_ids <<<"$run_ids_str$"
     for run_id in "${run_ids[@]}"; do
         mkdir -p "$run_id"
         cd "$run_id"
