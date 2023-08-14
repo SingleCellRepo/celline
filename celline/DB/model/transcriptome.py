@@ -9,7 +9,7 @@ from dataclasses import dataclass
 class Transcriptome_Schema(BaseSchema):
     built_path: str
 
-class Transcriptome(BaseModel):
+class Transcriptome(BaseModel[Transcriptome_Schema]):
 
     def set_class_name(self) -> str:
         return __class__.__name__
@@ -18,7 +18,7 @@ class Transcriptome(BaseModel):
         return Transcriptome_Schema
 
     def search(self, acceptable_id: str, force_search=False) -> Optional[str]:
-        target = self.get(Transcriptome_Schema, lambda d: d.species == acceptable_id)
+        target = self.get(Transcriptome_Schema, lambda d: d.key == acceptable_id)
         if len(target) > 0:
             return target[0].built_path
         return None
