@@ -150,7 +150,7 @@ class HandleResolver:
             cls._handlers[t.GetMethod("resolver")] = Activator.CreateInstance(t)
 
         if not cls._constructed:
-            module = Module.GetModules("celline/DB/handler")
+            module = Module.GetModules(f"{Config.EXEC_ROOT}/celline/DB/handler")
             cls._handlers: Dict[MethodInfo, BaseHandler] = {}
             cls._constructed = True
             module.ForEach(lambda mod: mod.GetTypes().ForEach(lambda t: _add(t)))

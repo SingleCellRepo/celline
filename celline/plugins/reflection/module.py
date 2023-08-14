@@ -1,11 +1,12 @@
 import glob
 import inspect
+import importlib.util
 from typing import Any, overload
 
 from celline.plugins.collections.generic import ListC
 from celline.plugins.reflection.bindingflags import BindingFlags
 from celline.plugins.reflection.type import TypeC, typeof
-
+import os
 
 class Module:
     __mod: Any
@@ -20,7 +21,14 @@ class Module:
 
     def __init__(self, arg: Any) -> None:
         if isinstance(arg, str):
-            self.__mod = __import__(arg, fromlist=[arg])
+            module_name = os.path.splitext(arg)[0]
+            spec = importlib.util.spec_from_file_location(module_name, arg)
+            if spec is None or spec.loader is None:
+                raise ModuleNotFoundError(f"Could not found: {module_name}")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            self.__mod = module
+            # self.__mod = __import__(arg, fromlist=[arg])
         if isinstance(arg, type):
             self.__mod = __import__(arg.__module__, fromlist=[arg.__name__])
         pass
@@ -52,8 +60,7 @@ class Module:
 
     @staticmethod
     def GetModules(dirs: str):
-        return ListC(list(glob.glob(dirs + "/**.py", recursive=True))).Select(
-            lambda path: Module(
-                path.replace("\\", "/").replace("/", ".").replace(".py", "")
-            )
+        # path.replace("\\", "/").replace("/", ".").replace(".py", "")
+        return ListC([f for f in list(glob.glob(dirs + "/**.py", recursive=True)) if not f.startswith("__")]).Select(
+            lambda path: Module(path)
         )
