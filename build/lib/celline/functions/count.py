@@ -72,7 +72,7 @@ class Count(CellineFunction):
                     raise KeyError("Could not find parent")
                 path = Path(sample_schema.parent, sample_id)
                 path.prepare()
-                transcriptome = Transcriptome.search_path(sample_schema.species)
+                transcriptome = Transcriptome().search(sample_schema.species)
 
                 if transcriptome is None:
                     raise LookupError(
