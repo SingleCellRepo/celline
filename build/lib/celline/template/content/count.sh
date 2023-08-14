@@ -1,11 +1,11 @@
 #!/bin/bash
 #PBS -S /bin/bash
-#PBS -l nodes=1:ppn=$nthread$:$cluster_server$
-#PBS -q $cluster_server$
-#PBS -N $jobname$
+#PBS -l nodes=1:ppn=%nthread/:%cluster_server/
+#PBS -q %cluster_server/
+#PBS -N %jobname/
 #PBS -j eo
 #PBS -m ae
-#PBS -e $logpath$
+#PBS -e %logpath/
 
 ## Check command ##
 if [ -e "$HOME/.bashrc" ]; then
@@ -25,10 +25,10 @@ for command in "${commands[@]}"; do
 done
 ##################
 
-cd "$dist_dir$"
+cd "%dist_dir/"
 rm -rf "./counted"
 cellranger count --id=counted \
-  --fastqs=$fq_path$ \
-  --sample=$sample_id$ \
-  --transcriptome=$transcriptome$ \
-  --no-bam --localcores $nthread$
+  --fastqs=%fq_path/ \
+  --sample=%sample_id/ \
+  --transcriptome=%transcriptome/ \
+  --no-bam --localcores %nthread/
