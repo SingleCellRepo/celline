@@ -8,3 +8,4 @@ __obsolete
 .venv
 node_modules
 *.parquet
+server_connection.toml

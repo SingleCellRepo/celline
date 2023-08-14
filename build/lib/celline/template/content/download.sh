@@ -1,4 +1,4 @@
-#!/bin/bash -f
+#!/bin/bash
 #PBS -S /bin/bash
 #PBS -l nodes=1:ppn=<nthread>:<cluster_server>
 #PBS -q <cluster_server>
@@ -8,15 +8,20 @@
 #PBS -e <logpath>
 
 ## Check command ##
-source "$HOME/.bashrc"
+if [ -e "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc"
+fi
+if [ -e "$HOME/.zshrc" ]; then
+    zsh "$HOME/.zshrc"
+fi
 commands=("cellranger")
 for command in "${commands[@]}"; do
-  if command -v "$command" >/dev/null 2>&1; then
-    echo "[CHECK] $command: Resolved."
-  else
-    echo "[CHECK] $command: Could not resolve."
-    exit 1
-  fi
+    if command -v "$command" >/dev/null 2>&1; then
+        echo "[CHECK] $command: Resolved."
+    else
+        echo "[CHECK] $command: Could not resolve."
+        exit 1
+    fi
 done
 ##################
 
@@ -46,9 +51,8 @@ if [ "$filetype" = "bam" ]; then
     if [ -d "fastqs" ]; then
         rm -rf "./fastqs"
     fi
-    cellranger bamtofastq --nthreads=<nthread> "$sample_id.bam" "./fastqs"
-    find "./fastqs" -type f -name "bamtofastq_*.fastq.gz" | while read file
-    do
+    cellranger bamtofastq --nthreads= "./fastqs" <nthread >"$sample_id.bam"
+    find "./fastqs" -type f -name "bamtofastq_*.fastq.gz" | while read file; do
         base_name=$(basename "$file" | sed 's/bamtofastq_//')
         dir_name=$(dirname "$file")
         new_file_name="${sample_id}_${base_name}"
@@ -61,7 +65,7 @@ elif [ "$filetype" = "fastq" ]; then
         mkdir -p "fastqs"
         cd "fastqs"
     fi
-    IFS=',' read -ra run_ids <<< "<run_ids_str>"
+    IFS=',' read -ra run_ids <<<"<run_ids_str>"
     for run_id in "${run_ids[@]}"; do
         mkdir -p "$run_id"
         cd "$run_id"
@@ -104,4 +108,3 @@ else
     echo "[ERROR] Input should be 'bam' or 'fastqs'"
     exit 1
 fi
-

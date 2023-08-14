@@ -9,6 +9,7 @@ from subprocess import Popen, PIPE
 from typing import Optional, Callable, Final, List
 from enum import Enum
 import polars as pl
+import rich
 
 from celline.server.setting import ServerSystem
 
@@ -176,6 +177,9 @@ class Shell:
         """Handles watching a generic job, checking its status and executing its callback function when it finishes."""
         if job.process.poll() is not None:
             out, err = job.process.communicate()
+            if job.process.returncode == 1:
+                # on error
+                rich.print(f"[bold red]Shell Error--------------------------\n{err.decode('utf-8')}[/]\n{out.decode('utf-8')}\n[bold red]-------------------------------------[/]")
             job.set_job_state(
                 returncode=job.process.returncode, output=out, error=err, finished=True
             )

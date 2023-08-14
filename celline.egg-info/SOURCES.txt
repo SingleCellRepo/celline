@@ -1,7 +1,6 @@
 LICENSE
 MANIFEST.in
 README.md
-dumped_filename.txt
 pyproject.toml
 setup.py
 celline/__init__.py

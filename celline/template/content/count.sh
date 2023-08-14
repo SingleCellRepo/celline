@@ -1,4 +1,4 @@
-#!/bin/bash -f
+#!/bin/bash
 #PBS -S /bin/bash
 #PBS -l nodes=1:ppn=<nthread>:<cluster_server>
 #PBS -q <cluster_server>
@@ -8,7 +8,12 @@
 #PBS -e <logpath>
 
 ## Check command ##
-source "$HOME/.bashrc"
+if [ -e "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc"
+fi
+if [ -e "$HOME/.zshrc" ]; then
+    zsh "$HOME/.zshrc"
+fi
 commands=("cellranger")
 for command in "${commands[@]}"; do
   if command -v "$command" >/dev/null 2>&1; then
@@ -20,7 +25,7 @@ for command in "${commands[@]}"; do
 done
 ##################
 
-cd <dist_dir>
+cd "<dist_dir>"
 rm -rf "./counted"
 cellranger count\
     --id=counted \

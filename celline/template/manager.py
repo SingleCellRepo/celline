@@ -1,7 +1,7 @@
 from typing import NamedTuple
 import re
 from celline.config import Config
-
+import os
 
 class TemplateManager:
     @staticmethod
@@ -12,7 +12,8 @@ class TemplateManager:
             encoding="utf-8",
         ) as file:
             data = file.read()
-
+        # shebang = f"#!/usr/bin/env {os.path.basename(os.environ.get('SHELL', '/bin/sh'))}\n"
+        # data = shebang + data
         for field in structure._fields:
             data = re.sub(f"<{field}>", getattr(structure, field), data)
 

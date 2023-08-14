@@ -1,7 +1,9 @@
 - name: wheel
   version: 0.41.0
+  channel: conda-forge
 - name: pandas
   version: 2.0.2
+  channel: conda-forge
 - name: anndata
   version: 0.9.1
 - name: h5py
