@@ -27,4 +27,3 @@ class CellineFunction(Protocol):
         args["options"]: get optional arguments
         args["options"]["<arg_name>"]: get optional argument with <arg_name>
         """
-        return

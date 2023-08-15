@@ -46,6 +46,7 @@ celline/functions/initialize.py
 celline/functions/integrate.py
 celline/functions/interactive.py
 celline/functions/job.py
+celline/functions/predict_celltype.py
 celline/functions/preprocess.py
 celline/functions/set_transcriptome.py
 celline/functions/sync_DB.py
@@ -62,8 +63,12 @@ celline/server/__init__.py
 celline/server/setting.py
 celline/template/__init__.py
 celline/template/manager.py
+celline/template/content/build_reference.sh
 celline/template/content/count.sh
 celline/template/content/download.sh
+celline/template/content/predict_celltype.sh
 celline/template/content/preprocess.sh
 celline/template/hook/R/FilterGenes.R
+celline/template/hook/R/build_reference.R
+celline/template/hook/R/run_scpred.R
 celline/template/tmp/download.sh

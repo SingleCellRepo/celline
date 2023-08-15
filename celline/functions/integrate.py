@@ -9,4 +9,4 @@ class Integrate(CellineFunction):
         return "integrate"
 
     def call(self, project: "Project"):
-        return project
+        raise NotImplementedError("Integrate is not implemeted yet")
