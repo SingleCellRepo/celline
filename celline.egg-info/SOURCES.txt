@@ -43,6 +43,7 @@ celline/functions/create_seurat.py
 celline/functions/download.py
 celline/functions/info.py
 celline/functions/initialize.py
+celline/functions/integrate.py
 celline/functions/interactive.py
 celline/functions/job.py
 celline/functions/preprocess.py
