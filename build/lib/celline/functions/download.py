@@ -89,7 +89,7 @@ class Download(CellineFunction):
                         logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
                         sample_id=sample_id,
                         download_target=path.resources_sample_raw,
-                        download_source=sample_schema.raw_link,
+                        download_source=sample_schema.raw_link.split(",")[0] if len(sample_schema.raw_link.split(",")) > 0 else "",
                         run_ids_str=sample_schema.children,
                     ),
                     replaced_path=f"{path.resources_sample_src}/download.sh",
