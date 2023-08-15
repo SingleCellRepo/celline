@@ -11,7 +11,7 @@ from rich import print
 
 @dataclass
 class SRA_SRR_Schema(RunSchema):
-    raw_link: str
+    pass
 
 
 class SRA_SRR(BaseModel[SRA_SRR_Schema]):

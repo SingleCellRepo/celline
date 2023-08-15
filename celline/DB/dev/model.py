@@ -78,6 +78,7 @@ class SampleSchema(BaseSchema):
 @abstractmethod
 class RunSchema(BaseSchema):
     strategy: str
+    raw_link: str
 
 
 TSchema = TypeVar("TSchema", bound=BaseSchema)
