@@ -27,6 +27,7 @@ celline/DB/model/sra_gse.py
 celline/DB/model/sra_gsm.py
 celline/DB/model/sra_srr.py
 celline/DB/model/transcriptome.py
+celline/R/integrate.R
 celline/data/__init__.py
 celline/data/ggplot.py
 celline/data/seurat.py

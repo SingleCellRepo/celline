@@ -1,25 +1,19 @@
-from enum import Enum
 import os
 import subprocess
 import datetime
 import shutil
 
-from typing import Dict, Optional, TYPE_CHECKING, NamedTuple, Callable, List
+from typing import Optional, TYPE_CHECKING, NamedTuple, Callable, List
 
-import polars as pl
-import toml
-from pprint import pprint
 
 from celline.functions._base import CellineFunction
-from celline.DB.model import SRA_GSM, SRA_GSE, SRA_SRR
 from celline.DB.dev.handler import HandleResolver
-from celline.config import Config
 from celline.utils.path import Path
 from celline.template import TemplateManager
 from celline.middleware import ThreadObservable
 from celline.server import ServerSystem
 from celline.sample import SampleResolver
-from celline.DB.dev.model import BaseModel, BaseSchema, RunSchema, SampleSchema
+from celline.DB.dev.model import RunSchema, SampleSchema
 if TYPE_CHECKING:
     from celline import Project
 
@@ -61,7 +55,7 @@ class Download(CellineFunction):
         Call the Download function to download data into the project.
         """
         all_job_files: List[str] = []
-        for sample_id in SampleResolver.samples:
+        for sample_id in SampleResolver.samples.keys():
             resolver = HandleResolver.resolve(sample_id)
             if resolver is None:
                 raise ReferenceError(f"Could not resolve target sample id: {sample_id}")

@@ -1,7 +1,6 @@
 from typing import NamedTuple
 import re
 from celline.config import Config
-import os
 
 class TemplateManager:
     @staticmethod
