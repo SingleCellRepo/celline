@@ -8,6 +8,7 @@ from celline.DB.dev.model import SampleSchema
 from celline.config import Config
 from celline.middleware import ThreadObservable
 from celline.utils.path import Path
+from celline.config import Setting
 from dataclasses import dataclass
 import pandas as pd
 import polars as pl
@@ -43,6 +44,7 @@ class BuildCellTypeModel(CellineFunction):
         h5matrix_path: str
         celltype_path: str
         dist_dir: str
+        r_path: str
 
     def __init__(
         self,
@@ -127,6 +129,7 @@ class BuildCellTypeModel(CellineFunction):
                 h5matrix_path=self.h5matrix_path,
                 dist_dir=dist_dir,
                 celltype_path=self.celltype_path,
+                r_path=f"{Setting.r_path}script",
             ),
             replaced_path=f"{dist_dir}/build.sh",
         )
