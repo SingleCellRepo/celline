@@ -70,9 +70,9 @@ class BuildCellTypeModel(CellineFunction):
             sys.exit(1)
         if (
             not h5matrix_path.endswith(".h5")
-            or not h5matrix_path.endswith(".loom")
-            or not h5matrix_path.endswith(".h5seurat")
-            or not h5matrix_path.endswith(".h5seuratv5")
+            and not h5matrix_path.endswith(".loom")
+            and not h5matrix_path.endswith(".h5seurat")
+            and not h5matrix_path.endswith(".h5seuratv5")
         ):
             rich.print(
                 "[bold red]Build Error[/] h5matrix_path should be .h5, h5seurat, h5seuratv5 or .loom file path."
@@ -150,9 +150,11 @@ class PredictCelltype(CellineFunction):
         jobname: str
         logpath: str
         all_sample_path: str
-        refh5: str
-        refpred: str
+        reference_seurat: str
+        reference_celltype: str
         dist_dir: str
+        r_path: str
+        exec_root: str
 
     def __init__(self, model: CellTypeModel) -> None:
         self.model = model
@@ -179,7 +181,7 @@ class PredictCelltype(CellineFunction):
             [__build_path(sample_id) for sample_id in SampleResolver.samples.keys()]
         )
         TemplateManager.replace_from_file(
-            file_name="build_reference.sh",
+            file_name="predict_celltype.sh",
             structure=PredictCelltype.JobContainer(
                 nthread=str(1),
                 cluster_server=""
@@ -188,9 +190,11 @@ class PredictCelltype(CellineFunction):
                 jobname="PredictCelltype",
                 logpath=f"{Config.PROJ_ROOT}/reference/prediction.log",
                 all_sample_path=all_sample_ids,
-                refh5=refh5,
-                refpred=refpred,
+                reference_seurat=refh5,
+                reference_celltype=refpred,
                 dist_dir=all_dist_dir,
+                r_path=f"{Setting.r_path}script",
+                exec_root=Config.EXEC_ROOT,
             ),
             replaced_path=f"{Config.PROJ_ROOT}/reference/prediction.sh",
         )
