@@ -1,5 +1,5 @@
 pacman::p_load(
-    Seurat, scPred, SingleCellPipeline,
+    Seurat, scPred,
     tidyverse, SeuratDisk,
     doParallel
 )
@@ -7,7 +7,7 @@ args <- commandArgs(trailingOnly = TRUE)
 nthread <- args[1]
 seurat_10x_file_path <- args[2]
 celltype_path <- args[3]
-dist_path <- args[3]
+dist_path <- args[4]
 
 reference <-
     Read10X_h5(seurat_10x_file_path) %>%
