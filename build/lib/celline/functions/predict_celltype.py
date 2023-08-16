@@ -45,6 +45,7 @@ class BuildCellTypeModel(CellineFunction):
         celltype_path: str
         dist_dir: str
         r_path: str
+        exec_root: str
 
     def __init__(
         self,
@@ -130,6 +131,7 @@ class BuildCellTypeModel(CellineFunction):
                 dist_dir=dist_dir,
                 celltype_path=self.celltype_path,
                 r_path=f"{Setting.r_path}script",
+                exec_root=Config.EXEC_ROOT,
             ),
             replaced_path=f"{dist_dir}/build.sh",
         )
