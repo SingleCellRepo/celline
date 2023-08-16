@@ -9,8 +9,26 @@ seurat_10x_file_path <- args[2]
 celltype_path <- args[3]
 dist_path <- args[4]
 
+if (stringr::str_ends(seurat_10x_file_path, "\\.h5")) {
+    reference <-
+        Read10X_h5(seurat_10x_file_path)
+} else if (stringr::str_ends(seurat_10x_file_path, "\\.loom")) {
+    reference <-
+        Connect(
+            filename = seurat_10x_file_path, mode = "r"
+        ) %>%
+        as.Seurat()
+} else if (stringr::str_ends(seurat_10x_file_path, "\\.h5seurat")) {
+    reference <-
+        LoadH5Seurat(seurat_10x_file_path)
+} else if (stringr::str_ends(seurat_10x_file_path, "\\.h5seuratv5")) {
+    reference <-
+        readRDS(seurat_10x_file_path)
+} else {
+    stop("Unknown identifier")
+}
 reference <-
-    Read10X_h5(seurat_10x_file_path) %>%
+    reference %>%
     NormalizeData() %>%
     FindVariableFeatures() %>%
     ScaleData() %>%

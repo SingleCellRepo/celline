@@ -65,9 +65,14 @@ class BuildCellTypeModel(CellineFunction):
             )
             self.__show_help()
             sys.exit(1)
-        if not h5matrix_path.endswith(".h5"):
+        if (
+            not h5matrix_path.endswith(".h5")
+            or not h5matrix_path.endswith(".loom")
+            or not h5matrix_path.endswith(".h5seurat")
+            or not h5matrix_path.endswith(".h5seuratv5")
+        ):
             rich.print(
-                "[bold red]Build Error[/] h5matrix_path should be .h5 file path."
+                "[bold red]Build Error[/] h5matrix_path should be .h5, h5seurat, h5seuratv5 or .loom file path."
             )
         self.model: Final[CellTypeModel] = CellTypeModel(species, suffix)
         self.nthread: Final[int] = nthread
