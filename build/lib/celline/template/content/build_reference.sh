@@ -14,4 +14,4 @@ if [ -e "$HOME/.zshrc" ]; then
     zsh "$HOME/.zshrc"
 fi
 h5matrix_path="%h5matrix_path/"
-%r_path/ "%exec_root//template/hook/R/build_reference.R" %nthread/ "$h5matrix_path" "%celltype_path/" "%dist_dir/"
+%r_path/ "%exec_root//celline/template/hook/R/build_reference.R" %nthread/ "$h5matrix_path" "%celltype_path/" "%dist_dir/"
