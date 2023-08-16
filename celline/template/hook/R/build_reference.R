@@ -11,13 +11,15 @@ dist_path <- args[4]
 
 if (stringr::str_ends(seurat_10x_file_path, "\\.h5")) {
     reference <-
-        Read10X_h5(seurat_10x_file_path)
+        Read10X_h5(seurat_10x_file_path) %>%
+        CreateSeuratObject()
 } else if (stringr::str_ends(seurat_10x_file_path, "\\.loom")) {
     reference <-
         Connect(
             filename = seurat_10x_file_path, mode = "r"
         ) %>%
-        as.Seurat()
+        as.Seurat() %>%
+        CreateSeuratObject()
 } else if (stringr::str_ends(seurat_10x_file_path, "\\.h5seurat")) {
     reference <-
         LoadH5Seurat(seurat_10x_file_path)
@@ -36,7 +38,10 @@ reference <-
     RunUMAP(dims = 1:30)
 
 celltype <-
-    read_tsv(celltype_path)
+    read_tsv(
+        celltype_path,
+        show_col_types = FALSE
+    )
 
 reference@meta.data <-
     reference@meta.data %>%
@@ -59,7 +64,7 @@ get_probabilities(reference) %>%
     write_tsv(
         paste0(
             dist_path,
-            "/probanility.tsv"
+            "/probability.tsv"
         )
     )
 saveRDS(
