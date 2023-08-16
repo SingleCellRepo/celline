@@ -110,7 +110,7 @@ class BuildCellTypeModel(CellineFunction):
         console.print(table)
 
     def call(self, project: "Project"):
-        dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species}/{self.model.suffix if self.model.suffix is not None else 'default'}"
+        dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species.replace(' ', '_')}/{self.model.suffix if self.model.suffix is not None else 'default'}"
         if (
             os.path.isdir(dist_dir)
             and not os.path.isfile(f"{dist_dir}/reference.pred")
@@ -173,7 +173,7 @@ class PredictCelltype(CellineFunction):
                 raise KeyError("Could not find parent")
             return f"{Path(sample_schema.parent, sample_id).data_sample}/"
 
-        __dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species}/{self.model.suffix if self.model.suffix is not None else 'default'}"
+        __dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species.replace(' ', '_')}/{self.model.suffix if self.model.suffix is not None else 'default'}"
         refh5 = f"{__dist_dir}/reference.h5seurat"
         refpred = f"{__dist_dir}/reference.pred"
         all_sample_ids = ",".join(SampleResolver.samples.keys())
