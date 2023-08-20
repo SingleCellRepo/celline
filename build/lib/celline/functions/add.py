@@ -36,12 +36,12 @@ class Add(CellineFunction):
             sample_id (<List[Add.SampleInfo]> | <pl.DataFrame>): Accession ID to add.
         """
         if isinstance(sample_id, pl.DataFrame):
-            if all(column in sample_id.columns for column in ["id", "title"]):
+            if not all(column in sample_id.columns for column in ["id", "title"]):
                 raise KeyError(
                     "The given DataFrame must consist of an id column and a title column."
                 )
             sample_id = NamedTupleAndPolarsStructure[Add.SampleInfo].deserialize(
-                sample_id, Add.SampleInfo
+                sample_id.select(pl.col(["id", "title"])), Add.SampleInfo
             )
         self.add_target_id: List[Add.SampleInfo] = sample_id
 

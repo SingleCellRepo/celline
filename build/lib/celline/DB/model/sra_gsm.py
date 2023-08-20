@@ -180,7 +180,7 @@ class SRA_GSM(BaseModel[SRA_GSM_Schema]):
                 f"{SRA_GSM.BASE_REQUEST_URL}{gsm_id}&targ=all&view=quick&form=xml",
                 timeout=100,
             )
-        except xml.etree.ElementTree.ParseError as err:
+        except ET.ParseError as err:
             print(f"Could not find target GSM: {gsm_id}")
             print("Tracebacks")
             print(err)
