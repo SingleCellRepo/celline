@@ -52,6 +52,8 @@ celline/functions/preprocess.py
 celline/functions/set_transcriptome.py
 celline/functions/sync_DB.py
 celline/functions/vcount.py
+celline/log/__init__.py
+celline/log/logger.py
 celline/middleware/__init__.py
 celline/middleware/delegate.py
 celline/middleware/shell.py

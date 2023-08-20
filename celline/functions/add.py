@@ -23,7 +23,7 @@ class Add(CellineFunction):
     """
 
     class SampleInfo(NamedTuple):
-        id_name: str
+        id: str
         title: Optional[str] = ""
 
     def __init__(self, sample_id: Union[List[SampleInfo], pl.DataFrame]) -> None:
@@ -36,10 +36,9 @@ class Add(CellineFunction):
             sample_id (<List[Add.SampleInfo]> | <pl.DataFrame>): Accession ID to add.
         """
         if isinstance(sample_id, pl.DataFrame):
-            cols = sample_id.get_columns()
-            if [col.name for col in cols] != ["id_name", "title"]:
+            if all(column in sample_id.columns for column in ["id", "title"]):
                 raise KeyError(
-                    "The given DataFrame must consist of an id_name column and a title column."
+                    "The given DataFrame must consist of an id column and a title column."
                 )
             sample_id = NamedTupleAndPolarsStructure[Add.SampleInfo].deserialize(
                 sample_id, Add.SampleInfo
@@ -90,9 +89,9 @@ class Add(CellineFunction):
             <Project>: The project with the added accession IDs.
         """
         for tid in self.add_target_id:
-            resolver = HandleResolver.resolve(tid.id_name)
+            resolver = HandleResolver.resolve(tid.id)
             if resolver is not None:
-                resolver.add(tid.id_name)
+                resolver.add(tid.id)
         # cnt = 0
         # for sample in tqdm.tqdm(self.add_target_id):
         #     if sample.id_name.startswith("GSE"):
