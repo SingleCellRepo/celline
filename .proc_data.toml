@@ -1,0 +1,6 @@
+title = "Sample Title"
+description = "Sample Description"
+items = [ "item1", "item2",]
+
+[metadata]
+key = "value"

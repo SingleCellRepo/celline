@@ -67,8 +67,8 @@ elif [ "$filetype" = "fastq" ]; then
     fi
     IFS=',' read -ra run_ids <<<"%run_ids_str/"
     for run_id in "${run_ids[@]}"; do
+        cd "$parent_dir"
         mkdir -p "$run_id"
-        cd "$run_id"
         # if the number of file starting with "${sample_id}_S1_L001" and ending with "fastq.gz" is less than 2
         #TODO: ここが上手く動いてません
         # if [ $(ls ${sample_id}_S1_L001*.fastq.gz 2> /dev/null | wc -l) -lt 2 ]; then
@@ -77,7 +77,7 @@ elif [ "$filetype" = "fastq" ]; then
         #     rm -rf "$run_id"
         #     continue
         # fi
-        cd "$parent_dir"
+        cd "$run_id"
         fastq-dump --split-files --origfmt --gzip "$run_id"
         input_fastqs=($(ls ${run_id}*.fastq.gz))
         # 配列の長さによるリードインデックスの定義
