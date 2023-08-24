@@ -219,6 +219,7 @@ class ThreadObservable:
                                 print(f"├─ Terminating shell script: {script}")
                 print("└─ Exit.")
             cls.progress.update(
-                cls.progress_tasks["all_tasks"], completed=total_tasks * 100
+                cls.progress_tasks["all_tasks"], completed=(total_tasks + 1) * 100
             )
+            time.sleep(0.1)
         return cls
