@@ -3,6 +3,7 @@ import os
 from typing import TYPE_CHECKING, List, Optional, Final
 
 import toml
+from rich.progress import track
 
 from celline.config import Config
 from celline.functions._base import CellineFunction
@@ -22,7 +23,7 @@ class SyncDB(CellineFunction):
             raise FileNotFoundError("sample.toml file was not found.")
         with open(fpath, encoding="utf-8", mode="r") as f:
             all_samples = list(toml.load(f).keys())
-        for sample in all_samples:
+        for sample in track(all_samples, description="Fetching..."):
             force_search = False
             if self.update_target is not None and sample in self.update_target:
                 force_search = True

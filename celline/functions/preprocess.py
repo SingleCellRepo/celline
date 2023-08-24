@@ -67,6 +67,7 @@ class Preprocess(CellineFunction):
                 os.path.isfile(f"{sample.path.data_sample}/doublet_info.tsv")
                 and os.path.isfile(f"{sample.path.data_sample}/qc_matrix.tsv")
             ):
+                sample.path.prepare()
                 TemplateManager.replace_from_file(
                     "preprocess.sh",
                     Preprocess.JobContainer(
