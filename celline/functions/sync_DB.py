@@ -6,7 +6,7 @@ import toml
 
 from celline.config import Config
 from celline.functions._base import CellineFunction
-from celline.DB.handler import GEOHandler
+from celline.DB.dev.handler import HandleResolver
 
 if TYPE_CHECKING:
     from celline import Project
@@ -26,5 +26,8 @@ class SyncDB(CellineFunction):
             force_search = False
             if self.update_target is not None and sample in self.update_target:
                 force_search = True
-            GEOHandler.sync(sample, force_search)
+            handler = HandleResolver.resolve(sample)
+            if handler is None:
+                raise NotImplementedError(f"Could not resolve target handler: {sample}")
+            handler.add(sample, force_search)
         return self
