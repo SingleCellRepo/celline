@@ -27,10 +27,16 @@ class Seurat:
         self.r("pacman::p_load(Seurat, SeuratDisk, tidyverse)")
         print("Loading seurat")
         if via_seurat_disk:
-            self.r("seurat <- SeuratDisk::LoadH5Seurat(h5seurat_path)")
+            result = self.r("seurat <- SeuratDisk::LoadH5Seurat(h5seurat_path)")
         else:
-            self.r("seurat <- readRDS(h5seurat_path)")
-        print("--> Done!")
+            result = self.r("seurat <- readRDS(h5seurat_path)")
+        print(
+            f"""
+Done.
+---- Trace --------------
+{result}
+"""
+        )
 
     @property
     def metadata(self) -> pl.DataFrame:
@@ -56,7 +62,7 @@ class Seurat:
         log = self.r(
             f'plt <- DimPlot(seurat, group.by = "{group_by}", split.by = {as_r_nullablestr(split_by)}, pt.size = {as_r_NULL(pt_size)})'
         )
-        print(log[1:])
+        print(log)
         return ggplot(self.r)
 
     def DotPlot(

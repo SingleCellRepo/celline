@@ -48,7 +48,7 @@ class ggplot:
     def title(self, name: str):
         self._title = name
 
-    _title: Optional[str]
+    _title: Optional[str] = None
     _x_name: Optional[str]
     _y_name: Optional[str]
 

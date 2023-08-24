@@ -3,6 +3,7 @@ from celline.config import Config, Setting
 import os
 import subprocess
 import toml
+import pyper as pr
 
 # from celline.database import NCBI, GSE, GSM
 from typing import (
@@ -141,11 +142,55 @@ class Project:
         self,
         project_id: str,
         sample_id: str,
-        identifier: str = "seurat.h5seurat",
-        via_seurat_disk: bool = True,
+        identifier: str = "seurat.seurat",
+        via_seurat_disk: bool = False,
     ):
-        seurat_path = f"{Path(project_id, sample_id).data_sample}/{identifier}"
+        path = Path(project_id, sample_id)
+        seurat_path = f"{path.data_sample}/{identifier}"
+        bcmatrix_path = (
+            f"{path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
+        )
+        if not os.path.isfile(seurat_path) and os.path.isfile(bcmatrix_path):
+            return self.create_seurat(project_id, sample_id)
         return self.seurat_from_rawpath(seurat_path, via_seurat_disk)
 
     def seurat_from_rawpath(self, raw_path: str, via_seurat_disk: bool = True):
         return Seurat(raw_path, via_seurat_disk)
+
+    def create_seurat(self, project_id: str, sample_id: str):
+        identifier: str = "seurat.seurat"
+        path = Path(project_id, sample_id)
+        seurat_path = f"{path.data_sample}/{identifier}"
+        r: pr.R = pr.R(RCMD=Setting.r_path, use_pandas=True)
+        r.assign(
+            "h5_path",
+            f"{path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5",
+        )
+        r.assign("h5seurat_path", f"{seurat_path}")
+        r.assign("proj", Setting.name)
+        print("Loading raw matrix")
+        result = r(
+            """
+pacman::p_load(Seurat, SeuratDisk, tidyverse)
+raw <-
+    Read10X_h5(h5_path) %>%
+    CreateSeuratObject(proj) %>%
+    NormalizeData() %>%
+    FindVariableFeatures() %>%
+    ScaleData()
+raw %>%
+    RunPCA(features = VariableFeatures(object = raw)) %>%
+    FindNeighbors(dims = 1:20) %>%
+    FindClusters(dims = 1:20) %>%
+    RunUMAP(dims = 1:20) %>%
+    saveRDS(h5seurat_path)
+"""
+        )
+        print(
+            f"""
+Done.
+---- Trace --------------
+{result}
+"""
+        )
+        return Seurat(seurat_path, False)
