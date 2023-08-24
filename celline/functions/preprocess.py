@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, NamedTuple, Callable, Optional, Final, List
 import scrublet as scr
 import scanpy as sc
 import polars as pl
+from rich.progress import track
 
 from celline.config import Config, Setting
 from celline.functions._base import CellineFunction
@@ -59,9 +60,10 @@ class Preprocess(CellineFunction):
     def call(self, project: Project):
         # [1st] Prepare doublet
         all_job_files: List[str] = []
-        for sample in [
-            sample for sample in Resources.all_samples() if not sample.preprocessed
-        ]:
+        for sample in track(
+            [sample for sample in Resources.all_samples() if not sample.preprocessed],
+            description="Preparing preprocess files...",
+        ):
             src_file = f"{sample.path.data_sample_src}/preprocess.sh"
             if not (
                 os.path.isfile(f"{sample.path.data_sample}/doublet_info.tsv")
@@ -86,7 +88,6 @@ class Preprocess(CellineFunction):
                     ),
                     replaced_path=src_file,
                 )
-                print(src_file)
                 all_job_files.append(src_file)
         ThreadObservable.call_shell(all_job_files).watch()
         return project

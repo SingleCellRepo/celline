@@ -179,7 +179,9 @@ class Shell:
             out, err = job.process.communicate()
             if job.process.returncode == 1:
                 # on error
-                rich.print(f"[bold red]Shell Error--------------------------\n{err.decode('utf-8')}[/]\n{out.decode('utf-8')}\n[bold red]-------------------------------------[/]")
+                rich.print(
+                    f"[bold red]Shell Error--------------------------\n{err.decode('utf-8')}[/]\n{out.decode('utf-8')}\n[bold red]-------------------------------------[/]"
+                )
             job.set_job_state(
                 returncode=job.process.returncode, output=out, error=err, finished=True
             )

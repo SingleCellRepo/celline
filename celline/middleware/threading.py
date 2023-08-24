@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, NamedTuple, Callable, Union, Dict, Optional, Any
+from typing import List, Final, Callable, Union, Dict, Optional, Any
 import uuid
 from functools import partial
 import time
@@ -8,6 +8,14 @@ import queue
 import threading
 import subprocess
 from celline.server import ServerSystem
+from rich.progress import (
+    Progress,
+    TextColumn,
+    BarColumn,
+    TimeRemainingColumn,
+    TimeElapsedColumn,
+    TaskID,
+)
 
 
 class ThreadObservable:
@@ -21,6 +29,8 @@ class ThreadObservable:
         If you are calling this class from Jupyter Notebook, remember to call the `watch` function
         to ensure all the scripts get executed.
     """
+
+    progress_tasks: dict[str, TaskID] = {}
 
     class ObservableShell:
         """
@@ -69,6 +79,7 @@ class ThreadObservable:
     def call_shell(
         cls,
         shell_ctrl: Union[List[str], List[ObservableShell]],
+        proc_name: Optional[str] = None,
     ):
         """
         #### Execute shell scripts using threads.
@@ -77,7 +88,16 @@ class ThreadObservable:
             `shell_ctrl<Union[List[str], List[ObservableShell]]>`: List of shell scripts or observable shell objects to be executed.\n
             `job_type<Shell.JobType -optional>`: Type of job execution (single-threaded or multi-threaded). Defaults to Shell.JobType.MultiThreading.
         """
-
+        if proc_name is None:
+            proc_name = "Shell progress"
+        cls.progress: Progress = Progress(
+            TextColumn(f"[bold blue]{proc_name}", justify="left"),
+            BarColumn(bar_width=None),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            TimeRemainingColumn(),
+            TimeElapsedColumn(),
+        )
+        cls.shell_ctrl = shell_ctrl
         job_type = ServerSystem.job_system
 
         def handler(
@@ -119,6 +139,9 @@ class ThreadObservable:
                     raise ValueError(
                         "'shell' object must have 'then' and 'catch' attributes"
                     )
+        cls.progress_tasks["all_tasks"] = cls.progress.add_task(
+            "run", total=len(shell_ctrl) * 100
+        )
 
         def get_first():
             with cls.__lock:
@@ -157,39 +180,45 @@ class ThreadObservable:
 
     @classmethod
     def watch(cls):
-        """
-        #### Watch all running jobs.
-        Continues to check until all the jobs are done.
-        """
-        try:
-            # while True:
-            while not cls.__queue.empty() or cls.__running_jobs:
-                time.sleep(0.1)
-        except KeyboardInterrupt:
-            print(
-                "\nKeyboard interrupt received. Attempting to terminate running jobs."
+        total_tasks = len(cls.shell_ctrl)
+        with cls.progress:
+            try:
+                # total_tasks = len(cls.progress_tasks) - 1  # "all_tasks" を除く
+                while not cls.__queue.empty() or cls.__running_jobs:
+                    completed_tasks = total_tasks - len(cls.__running_jobs)
+                    # print(completed_tasks)
+                    cls.progress.update(
+                        cls.progress_tasks["all_tasks"], completed=completed_tasks * 100
+                    )
+                    time.sleep(0.1)
+            except KeyboardInterrupt:
+                print(
+                    "\nKeyboard interrupt received. Attempting to terminate running jobs."
+                )
+                for hashed_id, observable_shell in cls.__running_jobs.items():
+                    script = observable_shell.script_path
+                    job = cls.__running_jobs.get(hashed_id, None)
+                    if job:
+                        # if the job is running under PBS system
+                        if job.job is not None:
+                            if (
+                                job.job.job_system == ServerSystem.JobType.PBS
+                                and job.job.job_id
+                            ):
+                                with subprocess.Popen(
+                                    f"qdel {job.job.job_id}",
+                                    shell=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                ) as p:
+                                    p.wait()
+                                print(f"├─ Terminating PBS job: {job.job.job_id}")
+                            else:
+                                # if the job is not under PBS, we simply terminate it
+                                job.job.process.terminate()
+                                print(f"├─ Terminating shell script: {script}")
+                print("└─ Exit.")
+            cls.progress.update(
+                cls.progress_tasks["all_tasks"], completed=total_tasks * 100
             )
-            for hashed_id, observable_shell in cls.__running_jobs.items():
-                script = observable_shell.script_path
-                job = cls.__running_jobs.get(hashed_id, None)
-                if job:
-                    # if the job is running under PBS system
-                    if job.job is not None:
-                        if (
-                            job.job.job_system == ServerSystem.JobType.PBS
-                            and job.job.job_id
-                        ):
-                            with subprocess.Popen(
-                                f"qdel {job.job.job_id}",
-                                shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                            ) as p:
-                                p.wait()
-                            print(f"├─ Terminating PBS job: {job.job.job_id}")
-                        else:
-                            # if the job is not under PBS, we simply terminate it
-                            job.job.process.terminate()
-                            print(f"├─ Terminating shell script: {script}")
-            print("└─ Exit.")
         return cls
