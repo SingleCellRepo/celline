@@ -15,6 +15,7 @@ from rich.progress import (
     TimeRemainingColumn,
     TimeElapsedColumn,
     TaskID,
+    SpinnerColumn,
 )
 
 
@@ -80,6 +81,7 @@ class ThreadObservable:
         cls,
         shell_ctrl: Union[List[str], List[ObservableShell]],
         proc_name: Optional[str] = None,
+        logging=True,
     ):
         """
         #### Execute shell scripts using threads.
@@ -88,14 +90,18 @@ class ThreadObservable:
             `shell_ctrl<Union[List[str], List[ObservableShell]]>`: List of shell scripts or observable shell objects to be executed.\n
             `job_type<Shell.JobType -optional>`: Type of job execution (single-threaded or multi-threaded). Defaults to Shell.JobType.MultiThreading.
         """
+        cls.logging = logging
         if proc_name is None:
             proc_name = "Shell progress"
         cls.progress: Progress = Progress(
+            SpinnerColumn(),
+            "[bold blue]{task.fields[icon]}",
             TextColumn(f"[bold blue]{proc_name}", justify="left"),
             BarColumn(bar_width=None),
             "[progress.percentage]{task.percentage:>3.1f}%",
             TimeRemainingColumn(),
             TimeElapsedColumn(),
+            "[progress.elapsed] [bold yellow]{task.fields[status]}",
         )
         cls.shell_ctrl = shell_ctrl
         job_type = ServerSystem.job_system
@@ -140,7 +146,7 @@ class ThreadObservable:
                         "'shell' object must have 'then' and 'catch' attributes"
                     )
         cls.progress_tasks["all_tasks"] = cls.progress.add_task(
-            "run", total=len(shell_ctrl) * 100
+            "run", total=len(shell_ctrl) * 100, status="Running Jobs", icon="🚀"
         )
 
         def get_first():
@@ -181,7 +187,8 @@ class ThreadObservable:
     @classmethod
     def watch(cls):
         total_tasks = len(cls.shell_ctrl)
-        with cls.progress:
+
+        def __proc():
             try:
                 # total_tasks = len(cls.progress_tasks) - 1  # "all_tasks" を除く
                 while not cls.__queue.empty() or cls.__running_jobs:
@@ -191,10 +198,23 @@ class ThreadObservable:
                         cls.progress_tasks["all_tasks"], completed=completed_tasks * 100
                     )
                     time.sleep(0.1)
+                cls.progress.update(
+                    cls.progress_tasks["all_tasks"],
+                    completed=(total_tasks + 1) * 100,
+                    icon="✅",
+                    status="Done",
+                )
             except KeyboardInterrupt:
+                cls.progress.update(
+                    cls.progress_tasks["all_tasks"],
+                    completed=(total_tasks + 1) * 100,
+                    icon="❌",
+                    status="Interrupted",
+                )
                 print(
                     "\nKeyboard interrupt received. Attempting to terminate running jobs."
                 )
+
                 for hashed_id, observable_shell in cls.__running_jobs.items():
                     script = observable_shell.script_path
                     job = cls.__running_jobs.get(hashed_id, None)
@@ -217,9 +237,13 @@ class ThreadObservable:
                                 # if the job is not under PBS, we simply terminate it
                                 job.job.process.terminate()
                                 print(f"├─ Terminating shell script: {script}")
+
                 print("└─ Exit.")
-            cls.progress.update(
-                cls.progress_tasks["all_tasks"], completed=(total_tasks + 1) * 100
-            )
             time.sleep(0.1)
+
+        if cls.logging:
+            with cls.progress:
+                __proc()
+        else:
+            __proc()
         return cls
