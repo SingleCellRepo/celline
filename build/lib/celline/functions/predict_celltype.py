@@ -171,14 +171,22 @@ class PredictCelltype(CellineFunction):
             sample_schema: SampleSchema = resolver.sample.search(sample_id)
             if sample_schema.parent is None:
                 raise KeyError("Could not find parent")
-            return f"{Path(sample_schema.parent, sample_id).data_sample}/"
+            return Path(sample_schema.parent, sample_id)
 
         __dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species.replace(' ', '_')}/{self.model.suffix if self.model.suffix is not None else 'default'}"
         refh5 = f"{__dist_dir}/reference.h5seurat"
         refpred = f"{__dist_dir}/reference.pred"
-        all_sample_ids = ",".join(SampleResolver.samples.keys())
+        all_sample_paths = ",".join(
+            [
+                f"{__build_path(sample_id).resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
+                for sample_id in SampleResolver.samples.keys()
+            ]
+        )
         all_dist_dir = ",".join(
-            [__build_path(sample_id) for sample_id in SampleResolver.samples.keys()]
+            [
+                f"{__build_path(sample_id).data_sample}/"
+                for sample_id in SampleResolver.samples.keys()
+            ]
         )
         TemplateManager.replace_from_file(
             file_name="predict_celltype.sh",
@@ -189,7 +197,7 @@ class PredictCelltype(CellineFunction):
                 else self.cluster_server,
                 jobname="PredictCelltype",
                 logpath=f"{Config.PROJ_ROOT}/reference/prediction.log",
-                all_sample_path=all_sample_ids,
+                all_sample_path=all_sample_paths,
                 reference_seurat=refh5,
                 reference_celltype=refpred,
                 dist_dir=all_dist_dir,

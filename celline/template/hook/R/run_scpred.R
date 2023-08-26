@@ -8,6 +8,7 @@ reference_seurat <- args[2]
 reference_celltype <- args[3]
 dist_dir <- unlist(strsplit(args[4], split = ","))
 
+all_sample_path_resolved <- c()
 for (target_sample_path in all_sample_path) {
     matrix_path <- paste0(
         target_sample_path,
@@ -16,28 +17,31 @@ for (target_sample_path in all_sample_path) {
     if (!file.exists(matrix_path)) {
         message(
             paste0(
-                "[ERROR!] Cound not resolved"
-            ),
-            file = "../logs/runtime_predict.log", append = TRUE
+                "[ERROR!] Cound not resolved: ",
+                target_sample_path,
+                ". Skip"
+            )
         )
-        stop(paste0(
-            "Could not find matrix: ", matrix_path
-        ))
+    } else {
+        all_sample_path_resolved <- c(
+            all_sample_path_resolved, target_sample_path
+        )
     }
 }
+message(reference_seurat)
 reference <-
-    LoadH5Seurat(reference_seurat)
+    readRDS(reference_seurat)
 reference@misc$scPred <- readRDS(reference_celltype)
 
 count <- 1
-for (target_sample_path in all_sample_path) {
+for (target_sample_path in all_sample_path_resolved) {
     matrix_path <- paste0(
         target_sample_path,
         "/counted/outs/filtered_feature_bc_matrix.h5"
     )
     message(
         paste0(
-            "@ Predicting ", count, "/", length(all_sample_path), "\n",
+            "@ Predicting ", count, "/", length(all_sample_path_resolved), "\n",
             "└ ( ", target_sample_path, " )"
         )
     )

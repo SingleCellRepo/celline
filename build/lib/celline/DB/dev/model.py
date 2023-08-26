@@ -67,12 +67,14 @@ class BaseSchema:
     children: Optional[str]
     title: Optional[str]
 
+
 @dataclass
 @abstractmethod
 class SampleSchema(BaseSchema):
     summary: str
     species: str
     raw_link: str
+
 
 @dataclass
 @abstractmethod
@@ -128,7 +130,6 @@ class BaseModel(Generic[TSchema], ABC):
         return (self.stored.filter(self.plptr("key") == acceptable_id).shape[0]) != 0
 
     def get_cache(self, acceptable_id: str, force_search=False) -> Optional[TSchema]:
-        self.stored.write_csv(f"{Config.EXEC_ROOT}/TEST.tsv", separator="\t")
         if self.exists(acceptable_id) and not force_search:
             return self.as_schema(
                 self.stored.filter(self.plptr("key") == acceptable_id).head(1),
