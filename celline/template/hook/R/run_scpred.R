@@ -10,11 +10,7 @@ dist_dir <- unlist(strsplit(args[4], split = ","))
 
 all_sample_path_resolved <- c()
 for (target_sample_path in all_sample_path) {
-    matrix_path <- paste0(
-        target_sample_path,
-        "/counted/outs/filtered_feature_bc_matrix.h5"
-    )
-    if (!file.exists(matrix_path)) {
+    if (!file.exists(target_sample_path)) {
         message(
             paste0(
                 "[ERROR!] Cound not resolved: ",
@@ -35,10 +31,6 @@ reference@misc$scPred <- readRDS(reference_celltype)
 
 count <- 1
 for (target_sample_path in all_sample_path_resolved) {
-    matrix_path <- paste0(
-        target_sample_path,
-        "/counted/outs/filtered_feature_bc_matrix.h5"
-    )
     message(
         paste0(
             "@ Predicting ", count, "/", length(all_sample_path_resolved), "\n",
@@ -49,7 +41,7 @@ for (target_sample_path in all_sample_path_resolved) {
     runquery <- !file.exists(predicted_file)
     if (runquery) {
         query <-
-            Read10X_h5(matrix_path) %>%
+            Read10X_h5(target_sample_path) %>%
             CreateSeuratObject() %>%
             NormalizeData() %>%
             scPredict(reference) %>%

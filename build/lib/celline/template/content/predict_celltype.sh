@@ -13,4 +13,4 @@ fi
 if [ -e "$HOME/.zshrc" ]; then
     zsh "$HOME/.zshrc"
 fi
-%r_path/ "%exec_root//celline/template/hook/R/run_scpred.R" "%base_path/" "%all_sample_path/" "%reference_seurat/" "%reference_celltype/" "%dist_dir/"
+%r_path/ "%exec_root//celline/template/hook/R/run_scpred.R" "%all_sample_path/" "%reference_seurat/" "%reference_celltype/" "%dist_dir/"
