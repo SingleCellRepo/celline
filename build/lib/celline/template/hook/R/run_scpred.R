@@ -43,7 +43,10 @@ for (target_sample_path in all_sample_path_resolved) {
         query <-
             Read10X_h5(target_sample_path) %>%
             CreateSeuratObject() %>%
-            NormalizeData() %>%
+            NormalizeData()
+        query[["data"]] <- query[["RNA"]]
+        query <-
+            query %>%
             scPredict(reference) %>%
             RunUMAP(reduction = "scpred", dims = 1:30)
         query@meta.data %>%
