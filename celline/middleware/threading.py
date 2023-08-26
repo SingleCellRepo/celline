@@ -76,6 +76,10 @@ class ThreadObservable:
         """
         return cls._jobs
 
+    logging = True
+    progress: Progress
+    shell_ctrl: Optional[Union[List[str], List[ObservableShell]]] = None
+
     @classmethod
     def call_shell(
         cls,
@@ -93,7 +97,7 @@ class ThreadObservable:
         cls.logging = logging
         if proc_name is None:
             proc_name = "Shell progress"
-        cls.progress: Progress = Progress(
+        cls.progress = Progress(
             SpinnerColumn(),
             "[bold blue]{task.fields[icon]}",
             TextColumn(f"[bold blue]{proc_name}", justify="left"),
@@ -186,64 +190,66 @@ class ThreadObservable:
 
     @classmethod
     def watch(cls):
-        total_tasks = len(cls.shell_ctrl)
+        if cls.shell_ctrl is not None:
+            total_tasks = len(cls.shell_ctrl)
 
-        def __proc():
-            try:
-                # total_tasks = len(cls.progress_tasks) - 1  # "all_tasks" を除く
-                while not cls.__queue.empty() or cls.__running_jobs:
-                    completed_tasks = total_tasks - len(cls.__running_jobs)
-                    # print(completed_tasks)
+            def __proc():
+                try:
+                    # total_tasks = len(cls.progress_tasks) - 1  # "all_tasks" を除く
+                    while not cls.__queue.empty() or cls.__running_jobs:
+                        completed_tasks = total_tasks - len(cls.__running_jobs)
+                        # print(completed_tasks)
+                        cls.progress.update(
+                            cls.progress_tasks["all_tasks"],
+                            completed=completed_tasks * 100,
+                        )
+                        time.sleep(0.1)
                     cls.progress.update(
-                        cls.progress_tasks["all_tasks"], completed=completed_tasks * 100
+                        cls.progress_tasks["all_tasks"],
+                        completed=(total_tasks + 1) * 100,
+                        icon="✅",
+                        status="Done",
                     )
-                    time.sleep(0.1)
-                cls.progress.update(
-                    cls.progress_tasks["all_tasks"],
-                    completed=(total_tasks + 1) * 100,
-                    icon="✅",
-                    status="Done",
-                )
-            except KeyboardInterrupt:
-                cls.progress.update(
-                    cls.progress_tasks["all_tasks"],
-                    completed=(total_tasks + 1) * 100,
-                    icon="❌",
-                    status="Interrupted",
-                )
-                print(
-                    "\nKeyboard interrupt received. Attempting to terminate running jobs."
-                )
+                except KeyboardInterrupt:
+                    cls.progress.update(
+                        cls.progress_tasks["all_tasks"],
+                        completed=(total_tasks + 1) * 100,
+                        icon="❌",
+                        status="Interrupted",
+                    )
+                    print(
+                        "\nKeyboard interrupt received. Attempting to terminate running jobs."
+                    )
 
-                for hashed_id, observable_shell in cls.__running_jobs.items():
-                    script = observable_shell.script_path
-                    job = cls.__running_jobs.get(hashed_id, None)
-                    if job:
-                        # if the job is running under PBS system
-                        if job.job is not None:
-                            if (
-                                job.job.job_system == ServerSystem.JobType.PBS
-                                and job.job.job_id
-                            ):
-                                with subprocess.Popen(
-                                    f"qdel {job.job.job_id}",
-                                    shell=True,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                ) as p:
-                                    p.wait()
-                                print(f"├─ Terminating PBS job: {job.job.job_id}")
-                            else:
-                                # if the job is not under PBS, we simply terminate it
-                                job.job.process.terminate()
-                                print(f"├─ Terminating shell script: {script}")
+                    for hashed_id, observable_shell in cls.__running_jobs.items():
+                        script = observable_shell.script_path
+                        job = cls.__running_jobs.get(hashed_id, None)
+                        if job:
+                            # if the job is running under PBS system
+                            if job.job is not None:
+                                if (
+                                    job.job.job_system == ServerSystem.JobType.PBS
+                                    and job.job.job_id
+                                ):
+                                    with subprocess.Popen(
+                                        f"qdel {job.job.job_id}",
+                                        shell=True,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                    ) as p:
+                                        p.wait()
+                                    print(f"├─ Terminating PBS job: {job.job.job_id}")
+                                else:
+                                    # if the job is not under PBS, we simply terminate it
+                                    job.job.process.terminate()
+                                    print(f"├─ Terminating shell script: {script}")
 
-                print("└─ Exit.")
-            time.sleep(0.1)
+                    print("└─ Exit.")
+                time.sleep(0.1)
 
-        if cls.logging:
-            with cls.progress:
+            if cls.logging:
+                with cls.progress:
+                    __proc()
+            else:
                 __proc()
-        else:
-            __proc()
         return cls
