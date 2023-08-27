@@ -82,7 +82,7 @@ class Resources:
             all_samples = Resources.all_samples()
             for i, sample in enumerate(all_samples):
                 if sample.sample_id == self.sample_id:
-                    all_samples[i] = self
+                    all_samples[i].name = new_name
             Resources.save_samples(all_samples)
 
     @classmethod
