@@ -34,7 +34,7 @@ class Reduce(CellineFunction):
             target_path = sample.path.resources_sample_counted
             if os.path.exists(target_path):
                 for foldername, subfolders, filenames in os.walk(
-                    target_path, topdown=False
+                    target_path, topdown=False, followlinks=True
                 ):
                     for filename in filenames:
                         rel_path = os.path.relpath(
@@ -42,10 +42,14 @@ class Reduce(CellineFunction):
                         )
                         if rel_path not in Reduce.FILES_TO_KEEP:
                             os.remove(os.path.join(foldername, filename))
+
+                    # 2. 空のディレクトリやシンボリックリンクを削除
                     for subfolder in subfolders:
                         full_subfolder_path = os.path.join(foldername, subfolder)
-                        if not os.listdir(
+                        if os.path.islink(full_subfolder_path):
+                            os.remove(full_subfolder_path)
+                        elif os.path.isdir(full_subfolder_path) and not os.listdir(
                             full_subfolder_path
-                        ):  # Check if directory is empty
+                        ):
                             os.rmdir(full_subfolder_path)
         return project
