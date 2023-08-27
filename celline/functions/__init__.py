@@ -10,3 +10,4 @@ from celline.functions.predict_celltype import (
     CellTypeModel,
     BuildCellTypeModel,
 )
+from celline.functions.create_seurat import CreateSeuratObject
