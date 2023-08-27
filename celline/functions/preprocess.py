@@ -9,6 +9,9 @@ import scrublet as scr
 import scanpy as sc
 import polars as pl
 from rich.progress import track
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from celline.config import Config, Setting
 from celline.functions._base import CellineFunction
@@ -58,17 +61,15 @@ class Preprocess(CellineFunction):
             )
 
     def call(self, project: Project):
+        UPPER_PERCENTILE = 97.5
         # [1st] Prepare doublet
         all_job_files: List[str] = []
         for sample in track(
-            [sample for sample in Resources.all_samples() if not sample.preprocessed],
+            Resources.all_samples(),
             description="Preparing preprocess files...",
         ):
             src_file = f"{sample.path.data_sample_src}/preprocess.sh"
-            if not (
-                os.path.isfile(f"{sample.path.data_sample}/doublet_info.tsv")
-                and os.path.isfile(f"{sample.path.data_sample}/qc_matrix.tsv")
-            ):
+            if not sample.preprocessed:
                 sample.path.prepare()
                 TemplateManager.replace_from_file(
                     "preprocess.sh",
@@ -90,4 +91,31 @@ class Preprocess(CellineFunction):
                 )
                 all_job_files.append(src_file)
         ThreadObservable.call_shell(all_job_files).watch()
+        for sample in track(
+            Resources.all_samples(),
+            description="Processing estimating doublets...",
+        ):
+            SAMPLE_PATH = sample.path.data_sample
+            if not os.path.isfile(
+                f"{SAMPLE_PATH}/doublet_filtered.tsv"
+            ) and os.path.isfile(f"{SAMPLE_PATH}/doublet_info.tsv"):
+                pldf = pl.read_csv(f"{SAMPLE_PATH}/doublet_info.tsv", separator="\t")
+                # doublet_scoreの95%信頼区間を計算
+                upper_bound = float(
+                    np.percentile(pldf["doublet_score"].to_numpy(), UPPER_PERCENTILE)
+                )
+                (
+                    pldf.with_columns(
+                        (pldf["doublet_score"] > upper_bound).alias("is_doublet_95")
+                    ).write_csv(f"{SAMPLE_PATH}/doublet_filtered.tsv", separator="\t")
+                )
+                sns.histplot(pldf["doublet_score"].to_numpy(), kde=True)
+                plt.axvline(upper_bound, color="red", linestyle="--")
+                plt.xlabel("Doublet Score")
+                plt.ylabel("Frequency")
+                plt.title("Distribution of Doublet Score")
+                plt.savefig(
+                    f"{SAMPLE_PATH}/doublet_distribution.png", format="png", dpi=300
+                )
+                plt.close()
         return project

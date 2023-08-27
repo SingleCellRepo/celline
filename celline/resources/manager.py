@@ -63,7 +63,7 @@ class Resources:
             return os.path.isfile(counted_file)
 
         @property
-        def preprocessed(self):
+        def preprocessed(self) -> bool:
             return os.path.isfile(
                 f"{self.path.data_sample}/doublet_info.tsv"
             ) and os.path.isfile(f"{self.path.data_sample}/qc_matrix.tsv")
