@@ -49,6 +49,7 @@ celline/functions/interactive.py
 celline/functions/job.py
 celline/functions/predict_celltype.py
 celline/functions/preprocess.py
+celline/functions/reduce.py
 celline/functions/set_transcriptome.py
 celline/functions/sync_DB.py
 celline/functions/vcount.py

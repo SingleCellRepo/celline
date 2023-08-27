@@ -11,3 +11,4 @@ from celline.functions.predict_celltype import (
     BuildCellTypeModel,
 )
 from celline.functions.create_seurat import CreateSeuratObject
+from celline.functions.reduce import Reduce
