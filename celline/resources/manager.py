@@ -70,7 +70,7 @@ class Resources:
 
         @property
         def celltype_predicted(self):
-            return os.path.isfile(f"{self.path.data_sample}/celltype_pred.tsv")
+            return os.path.isfile(f"{self.path.data_sample}/celltype_predicted.tsv")
 
         @property
         def name(self):
