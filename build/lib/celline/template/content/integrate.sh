@@ -19,6 +19,6 @@ fi
     "%project_ids/"\
     "%all_bcmat_path/"\
     "%all_data_sample_dir_path/"\
-    "%out_file_name/"\
+    "%outfile_path/"\
     "%logpath_runtime/"\
     "%project_name/"

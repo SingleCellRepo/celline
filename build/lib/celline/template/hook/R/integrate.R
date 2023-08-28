@@ -15,7 +15,7 @@ all_bcmat_path <- unlist(strsplit(args[3], split = ","))
 # `<List<str>>` Directory of `data/GSE*/GSM*`
 all_data_sample_dir_path <- unlist(strsplit(args[4], split = ","))
 # `<str>` Output file name (excluding .rds)
-out_file_name <- args[5]
+outfile_path <- args[5]
 # `<str>` Log file path
 logpath_runtime <- args[6]
 # `<str>` Project name
@@ -46,7 +46,8 @@ log_out(
     "\n├─ Processing..." # nolint: line_length_linter.
 )
 
-for (cnt in length(all_bcmat_path)) {
+cnt <- 1
+for (path in all_bcmat_path) {
     log_out(paste0(
         "├─ Loading ", all_bcmat_path[cnt],
         cnt, "/", length(all_bcmat_path)
@@ -114,6 +115,7 @@ for (cnt in length(all_bcmat_path)) {
     } else {
         log_out("├─ └─ Project does not exists. Skip.")
     }
+    cnt <- cnt + 1
 }
 merged <- JoinLayers(merged)
 merged[["RNA"]] <- split(merged[["RNA"]], f = merged$project)
@@ -171,7 +173,7 @@ log_out("├─ Writing h5 seurat file...")
 merged %>%
     saveRDS(
         paste0(
-            out_file_name,
+            outfile_path,
             ".rds"
         )
     )

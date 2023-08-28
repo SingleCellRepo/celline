@@ -29,7 +29,7 @@ class Integrate(CellineFunction):
         project_ids: str
         all_bcmat_path: str
         all_data_sample_dir_path: str
-        out_file_name: str
+        outfile_path: str
         logpath_runtime: str
         project_name: str
 
@@ -41,9 +41,11 @@ class Integrate(CellineFunction):
         self.filter_func = filter_func
         self.cluster_server: Final[Optional[str]] = ServerSystem.cluster_server_name
         if outfile_name is None:
-            self.outfile_name: Final[str] = f"integrated_{datetime.datetime.now()}"
+            self.outfile_path: Final[
+                str
+            ] = f"{Config.PROJ_ROOT}/integration/integrated_{datetime.datetime.now()}"
         else:
-            self.outfile_name = outfile_name
+            self.outfile_path = f"{Config.PROJ_ROOT}/integration/{outfile_name}"
 
     def register(self) -> str:
         return "integrate"
@@ -94,7 +96,7 @@ class Integrate(CellineFunction):
                 all_data_sample_dir_path=",".join(
                     [f"{sample.path.data_sample}" for sample in target_samples]
                 ),
-                out_file_name=self.outfile_name,
+                outfile_path=self.outfile_path,
                 logpath_runtime=f"{Config.PROJ_ROOT}/integration/logs/RUNTIME_integrate_{now}.log",
                 project_name=f"{Setting.name}",
             ),
