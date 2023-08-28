@@ -4,9 +4,9 @@ import rich
 import os
 
 from celline.functions._base import CellineFunction
-from celline.resources import Resources
 from celline.template import TemplateManager
 from celline.server import ServerSystem
+from celline.sample import SampleResolver
 from celline.config import Setting, Config
 from celline.middleware import ThreadObservable
 
@@ -44,15 +44,15 @@ class CreateSeuratObject(CellineFunction):
 
     def call(self, project: "Project"):
         all_job_files: List[str] = []
-        for sample in Resources.all_samples():
-            if not (sample.celltype_predicted and sample.preprocessed):
+        for sample in SampleResolver.samples.values():
+            if not (sample.path.is_predicted_celltype and sample.path.is_preprocessed):
                 rich.print(
-                    f"[bold red]Sample {sample.name} is not counted/predicted or pre-processed yet.[/]: Skip"
+                    f"[bold red]Sample {sample.schema.key} is not counted/predicted or pre-processed yet.[/]: Skip"
                 )
             else:
                 if os.path.isfile(f"{sample.path.data_sample}/seurat.rds"):
                     rich.print(
-                        f":rocket:[bold green]Sample {sample.name} is already processed.[/] Skip"
+                        f":rocket:[bold green]Sample {sample.schema.key} is already processed.[/] Skip"
                     )
                 else:
                     input_h5_path = f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"

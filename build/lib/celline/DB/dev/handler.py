@@ -21,8 +21,6 @@ TProject = TypeVar("TProject", bound=BaseModel)
 TSample = TypeVar("TSample", bound=BaseModel)
 TRun = TypeVar("TRun", bound=BaseModel)
 
-from celline.DB.model.sra_gse import SRA_GSE
-
 
 class BaseHandler(Generic[TProject, TSample, TRun], ABC):
     """## Handle genome database"""

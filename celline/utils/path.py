@@ -83,6 +83,28 @@ class Path:
                 all_files.append(False)
         return len(all_files) > 0 and all(all_files)
 
+    @property
+    def is_counted(self):
+        """Already counted?"""
+        counted_file = (
+            f"{self.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
+        )
+        return os.path.isfile(counted_file)
+
+    @property
+    def is_doublet_predicted(self) -> bool:
+        return os.path.isfile(f"{self.data_sample}/doublet_info.tsv")
+
+    @property
+    def is_preprocessed(self) -> bool:
+        return os.path.isfile(
+            f"{self.data_sample}/doublet_info.tsv"
+        ) and os.path.isfile(f"{self.data_sample}/qc_matrix.tsv")
+
+    @property
+    def is_predicted_celltype(self):
+        return os.path.isfile(f"{self.data_sample}/celltype_predicted.tsv")
+
     def prepare(self):
         if not os.path.isdir(self.resources_sample_raw):
             os.makedirs(self.resources_sample_raw, exist_ok=True)

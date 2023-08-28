@@ -1,1 +1,1 @@
-from celline.sample.sample_handler import SampleResolver
+from celline.sample.sample_handler import SampleResolver, SampleInfo

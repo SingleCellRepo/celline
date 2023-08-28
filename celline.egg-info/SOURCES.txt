@@ -71,10 +71,12 @@ celline/template/content/build_reference.sh
 celline/template/content/count.sh
 celline/template/content/create_seurat.sh
 celline/template/content/download.sh
+celline/template/content/integrate.sh
 celline/template/content/predict_celltype.sh
 celline/template/content/preprocess.sh
 celline/template/hook/R/FilterGenes.R
 celline/template/hook/R/build_reference.R
 celline/template/hook/R/create_seurat.R
+celline/template/hook/R/integrate.R
 celline/template/hook/R/run_scpred.R
 celline/template/tmp/download.sh
