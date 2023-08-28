@@ -14,7 +14,7 @@ if [ -e "$HOME/.zshrc" ]; then
     zsh "$HOME/.zshrc"
 fi
 %r_path/\
-    "%exec_root//celline/template/hook/R/run_scpred.R"\
+    "%exec_root//celline/template/hook/R/integrate.R"\
     "%sample_ids/"\
     "%project_ids/"\
     "%all_bcmat_path/"\

@@ -50,7 +50,7 @@ log_out(
 for (cnt in length(all_bcmat_path)) {
     log_out(paste0(
         "├─ Loading ", all_bcmat_path[cnt],
-        cnt, "/", length(length(all_bcmat_path))
+        cnt, "/", length(all_bcmat_path)
     ))
     celltype_pred_path <-
         paste0(

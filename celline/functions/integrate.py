@@ -98,9 +98,9 @@ class Integrate(CellineFunction):
                 logpath_runtime=f"{Config.PROJ_ROOT}/integration/logs/RUNTIME_integrate_{now}.log",
                 project_name=f"{Setting.name}",
             ),
-            replaced_path=f"{Config.PROJ_ROOT}/integration/logs/integrate_{now}.sh",
+            replaced_path=f"{Config.PROJ_ROOT}/integration/integrate_{now}.sh",
         )
         ThreadObservable.call_shell(
-            [f"{Config.PROJ_ROOT}/integration/logs/integrate_{now}.sh"]
+            [f"{Config.PROJ_ROOT}/integration/integrate_{now}.sh"]
         ).watch()
         return project
