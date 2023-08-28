@@ -15,7 +15,7 @@ import seaborn as sns
 
 from celline.config import Config, Setting
 from celline.functions._base import CellineFunction
-from celline.resources import Resources
+from celline.sample import SampleResolver
 from celline.middleware import ThreadObservable, Shell
 from celline.template import TemplateManager
 from celline.server import ServerSystem
@@ -65,11 +65,11 @@ class Preprocess(CellineFunction):
         # [1st] Prepare doublet
         all_job_files: List[str] = []
         for sample in track(
-            Resources.all_samples(),
+            SampleResolver.samples.values(),
             description="Preparing preprocess files...",
         ):
             src_file = f"{sample.path.data_sample_src}/preprocess.sh"
-            if not sample.preprocessed:
+            if not sample.path.is_preprocessed:
                 sample.path.prepare()
                 TemplateManager.replace_from_file(
                     "preprocess.sh",
@@ -77,7 +77,7 @@ class Preprocess(CellineFunction):
                         cluster_server=self.cluster_server
                         if self.cluster_server is not None
                         else "",
-                        jobname=f"Preprocess_{sample.sample_id}",
+                        jobname=f"Preprocess_{sample.schema.key}",
                         logpath=sample.path.data_log_file("preproc"),
                         output_doublet_path=f"{sample.path.data_sample}/doublet_info.tsv",
                         output_qc_path=f"{sample.path.data_sample}/qc_matrix.tsv",
@@ -92,7 +92,7 @@ class Preprocess(CellineFunction):
                 all_job_files.append(src_file)
         ThreadObservable.call_shell(all_job_files).watch()
         for sample in track(
-            Resources.all_samples(),
+            SampleResolver.samples.values(),
             description="Processing estimating doublets...",
         ):
             SAMPLE_PATH = sample.path.data_sample

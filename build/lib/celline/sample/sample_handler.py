@@ -36,7 +36,7 @@ class SampleResolver:
                         f"[bold red]Unresolved error[/] Could not resolve {sample_id}"
                     )
                 else:
-                    __sample: SampleSchema = __resolver.sample
+                    __sample: SampleSchema = __resolver.sample.search(sample_id)
                     if __sample.parent is not None:
                         cls.__samples[sample_id] = SampleInfo(
                             schema=__sample,

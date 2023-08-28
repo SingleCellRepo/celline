@@ -31,6 +31,7 @@ class Integrate(CellineFunction):
         all_data_sample_dir_path: str
         out_file_name: str
         logpath_runtime: str
+        project_name: str
 
     def __init__(
         self,
@@ -95,6 +96,7 @@ class Integrate(CellineFunction):
                 ),
                 out_file_name=self.outfile_name,
                 logpath_runtime=f"{Config.PROJ_ROOT}/integration/logs/RUNTIME_integrate_{now}.log",
+                project_name=f"{Setting.name}",
             ),
             replaced_path=f"{Config.PROJ_ROOT}/integration/logs/integrate_{now}.sh",
         )

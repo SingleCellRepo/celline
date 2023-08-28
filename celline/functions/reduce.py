@@ -4,7 +4,7 @@ import rich
 import os
 
 from celline.functions._base import CellineFunction
-from celline.resources import Resources
+from celline.sample import SampleResolver
 from celline.template import TemplateManager
 from celline.server import ServerSystem
 from celline.config import Setting, Config
@@ -28,7 +28,7 @@ class Reduce(CellineFunction):
 
     def call(self, project: "Project"):
         for sample in track(
-            Resources.all_samples(),
+            SampleResolver.samples.values(),
             description="Processing reducing files...",
         ):
             target_path = sample.path.resources_sample_counted
