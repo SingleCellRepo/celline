@@ -1,6 +1,5 @@
 pacman::p_load(
-    Seurat, SeuratDisk, tidyverse, SeuratWrappers,
-    Azimuth, patchwork, SeuratObject
+    Seurat, SeuratDisk, tidyverse, SeuratObject
 )
 options(future.globals.maxSize = 1e9)
 options(Seurat.object.assay.version = "v5")
