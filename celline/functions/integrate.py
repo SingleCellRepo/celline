@@ -49,7 +49,7 @@ class Integrate(CellineFunction):
         return "integrate"
 
     def call(self, project: "Project"):
-        now = datetime.datetime.now()
+        now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         target_samples: list[SampleInfo] = []
         for info in SampleResolver.samples.values():
             if info.path.is_counted and info.path.is_doublet_predicted:
