@@ -1,8 +1,9 @@
-from setuptools import setup, find_packages, Command
+import os
+import subprocess
+
+from setuptools import Command, find_packages, setup
 from setuptools.command.install import install
 from tqdm import tqdm
-import subprocess
-import os
 import yaml
 
 

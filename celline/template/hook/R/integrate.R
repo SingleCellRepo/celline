@@ -112,6 +112,12 @@ for (path in all_bcmat_path) {
         }
         seurat@meta.data <-
             seurat@meta.data %>%
+            mutate(
+                old_cellname = cell,
+                cell = paste0(
+                    sample, "_", row_number()
+                )
+            ) %>%
             tibble::column_to_rownames("cell")
         seurat <-
             seurat %>%
@@ -119,11 +125,6 @@ for (path in all_bcmat_path) {
                 new.names =
                     seurat@meta.data %>%
                         tibble::rownames_to_column("cell") %>%
-                        mutate(
-                            cell = paste0(
-                                sample, "_", row_number()
-                            )
-                        ) %>%
                         distinct(cell) %>%
                         pull()
             )

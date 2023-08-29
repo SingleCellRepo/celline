@@ -1,17 +1,17 @@
-from typing import TYPE_CHECKING, Callable, Optional, NamedTuple, Final
-import os
 import datetime
+import os
+from typing import TYPE_CHECKING, Callable, Final, NamedTuple, Optional
 
 import rich
 
-from celline.functions._base import CellineFunction
-from celline.DB.dev.model import SampleSchema
 from celline.DB.dev.handler import HandleResolver
-from celline.sample import SampleResolver, SampleInfo
-from celline.template import TemplateManager
-from celline.server import ServerSystem
-from celline.config import Setting, Config
+from celline.DB.dev.model import SampleSchema
+from celline.config import Config, Setting
+from celline.functions._base import CellineFunction
 from celline.middleware import ThreadObservable
+from celline.sample import SampleInfo, SampleResolver
+from celline.server import ServerSystem
+from celline.template import TemplateManager
 
 if TYPE_CHECKING:
     from celline import Project
@@ -41,9 +41,9 @@ class Integrate(CellineFunction):
         self.filter_func = filter_func
         self.cluster_server: Final[Optional[str]] = ServerSystem.cluster_server_name
         if outfile_name is None:
-            self.outfile_path: Final[
-                str
-            ] = f"{Config.PROJ_ROOT}/integration/integrated_{datetime.datetime.now()}"
+            self.outfile_path: str = (
+                f"{Config.PROJ_ROOT}/integration/integrated_{datetime.datetime.now()}"
+            )
         else:
             self.outfile_path = f"{Config.PROJ_ROOT}/integration/{outfile_name}"
 

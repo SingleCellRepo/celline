@@ -1,15 +1,14 @@
-import os
-
-from typing import Final, Dict
-
-from celline.config import Config
-from celline.DB.dev.model import SampleSchema
-from celline.DB.dev.handler import HandleResolver
-from celline.utils.path import Path
-
-import toml
 from dataclasses import dataclass
+import os
+from typing import Dict, Final
+
 import rich
+import toml
+
+from celline.DB.dev.handler import HandleResolver
+from celline.DB.dev.model import SampleSchema
+from celline.config import Config
+from celline.utils.path import Path
 
 
 @dataclass
