@@ -77,6 +77,17 @@ for (path in all_bcmat_path) {
                 sample = sample_ids[cnt],
                 project = project_ids[cnt]
             )
+        if (file.exists(celltype_pred_path)) {
+            seurat@meta.data <-
+                seurat@meta.data %>%
+                left_join(
+                    read_tsv(
+                        celltype_pred_path,
+                        show_col_types = FALSE
+                    ),
+                    by = "cell"
+                )
+        }
         if (file.exists(doublet_info_path)) {
             seurat@meta.data <-
                 seurat@meta.data %>%
@@ -102,6 +113,20 @@ for (path in all_bcmat_path) {
         seurat@meta.data <-
             seurat@meta.data %>%
             tibble::column_to_rownames("cell")
+        seurat <-
+            seurat %>%
+            RenameCells(
+                new.names =
+                    seurat@meta.data %>%
+                        tibble::rownames_to_column("cell") %>%
+                        mutate(
+                            cell = paste0(
+                                sample, "_", row_number()
+                            )
+                        ) %>%
+                        distinct(cell) %>%
+                        pull()
+            )
         log_out("├─ └─ Done!")
         if (cnt == 1) {
             merged <- seurat
