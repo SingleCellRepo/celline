@@ -54,15 +54,15 @@ for (path in all_bcmat_path) {
     ))
     celltype_pred_path <-
         paste0(
-            all_data_sample_dir_path[1], "/celltype_predicted.tsv"
+            all_data_sample_dir_path[cnt], "/celltype_predicted.tsv"
         )
     doublet_info_path <-
         paste0(
-            all_data_sample_dir_path[1], "/doublet_filtered.tsv"
+            all_data_sample_dir_path[cnt], "/doublet_filtered.tsv"
         )
     qc_matrix_path <-
         paste0(
-            all_data_sample_dir_path[1], "/qc_matrix.tsv"
+            all_data_sample_dir_path[cnt], "/qc_matrix.tsv"
         )
     if (file.exists(all_bcmat_path[cnt])) {
         seurat <-
