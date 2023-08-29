@@ -11,7 +11,7 @@ from celline.functions._base import CellineFunction
 from celline.utils.serialization import NamedTupleAndPolarsStructure
 
 from celline.DB.dev.handler import HandleResolver
-
+from rich.progress import track
 
 if TYPE_CHECKING:
     from celline import Project
@@ -88,7 +88,7 @@ class Add(CellineFunction):
         Returns:
             <Project>: The project with the added accession IDs.
         """
-        for tid in self.add_target_id:
+        for tid in track(self.add_target_id, description="Adding AcceptableID..."):
             resolver = HandleResolver.resolve(tid.id)
             if resolver is not None:
                 resolver.add(tid.id)
