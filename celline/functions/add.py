@@ -88,7 +88,7 @@ class Add(CellineFunction):
         Returns:
             <Project>: The project with the added accession IDs.
         """
-        for tid in track(self.add_target_id, description="Adding AcceptableID..."):
+        for tid in track(self.add_target_id, description="Adding..."):
             resolver = HandleResolver.resolve(tid.id)
             if resolver is not None:
                 resolver.add(tid.id)
