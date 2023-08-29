@@ -54,7 +54,7 @@ class Integrate(CellineFunction):
         now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         target_samples: list[SampleInfo] = []
         for info in SampleResolver.samples.values():
-            if info.path.is_counted and info.path.is_doublet_predicted:
+            if info.path.is_counted:
                 if self.filter_func is None:
                     add = True
                 else:

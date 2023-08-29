@@ -114,7 +114,7 @@ for (path in all_bcmat_path) {
             seurat@meta.data %>%
             mutate(
                 old_cellname = cell,
-                cell = paste0(
+                new_cellname = paste0(
                     sample, "_", row_number()
                 )
             ) %>%
@@ -124,8 +124,7 @@ for (path in all_bcmat_path) {
             RenameCells(
                 new.names =
                     seurat@meta.data %>%
-                        tibble::rownames_to_column("cell") %>%
-                        distinct(cell) %>%
+                        distinct(new_cellname) %>%
                         pull()
             )
         log_out("├─ └─ Done!")
