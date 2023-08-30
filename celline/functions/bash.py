@@ -1,9 +1,8 @@
-from celline.functions._base import CellineFunction
-
-from typing import Callable, Optional, List, TYPE_CHECKING
-
-import subprocess
 import os
+import subprocess
+from typing import TYPE_CHECKING, Callable, List, Optional
+
+from celline.functions._base import CellineFunction
 
 if TYPE_CHECKING:
     from celline import Project

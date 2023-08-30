@@ -1,13 +1,12 @@
 import os
+from typing import TYPE_CHECKING, Final, List, Optional
 
-from typing import TYPE_CHECKING, List, Optional, Final
-
-import toml
 from rich.progress import track
+import toml
 
+from celline.DB.dev.handler import HandleResolver
 from celline.config import Config
 from celline.functions._base import CellineFunction
-from celline.DB.dev.handler import HandleResolver
 
 if TYPE_CHECKING:
     from celline import Project

@@ -1,8 +1,9 @@
+import subprocess
+from typing import Dict, List, Optional
+
+from celline.config import Config
 from celline.functions._base import CellineFunction
 from celline.plugins.collections.generic import DictionaryC, ListC
-from typing import Optional, List, Dict
-from celline.config import Config
-import subprocess
 
 
 class Interactive(CellineFunction):

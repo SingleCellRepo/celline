@@ -5,12 +5,12 @@ import polars as pl
 import toml
 import tqdm
 
-from celline.config import Config
 from celline.DB.handler import GEOHandler
 from celline.DB.model import SRA_GSE, SRA_GSM, SRA_SRR
+from celline.DB.model.transcriptome import Transcriptome
+from celline.config import Config
 from celline.functions._base import CellineFunction
 from celline.utils.serialization import NamedTupleAndPolarsStructure
-from celline.DB.model.transcriptome import Transcriptome
 
 if TYPE_CHECKING:
     from celline import Project

@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Optional, Any, Dict, TYPE_CHECKING, Protocol
+
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol
 
 if TYPE_CHECKING:
     from celline import Project

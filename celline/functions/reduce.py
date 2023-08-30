@@ -1,15 +1,16 @@
-from typing import TYPE_CHECKING, Optional, Callable, Final, Dict, List, NamedTuple
-import subprocess
-import rich
 import os
+import subprocess
+from typing import TYPE_CHECKING, Callable, Dict, Final, List, NamedTuple, Optional
 
-from celline.functions._base import CellineFunction
-from celline.sample import SampleResolver
-from celline.template import TemplateManager
-from celline.server import ServerSystem
-from celline.config import Setting, Config
-from celline.middleware import ThreadObservable
+import rich
 from rich.progress import track
+
+from celline.config import Config, Setting
+from celline.functions._base import CellineFunction
+from celline.middleware import ThreadObservable
+from celline.sample import SampleResolver
+from celline.server import ServerSystem
+from celline.template import TemplateManager
 
 if TYPE_CHECKING:
     from celline import Project

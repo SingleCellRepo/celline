@@ -1,10 +1,12 @@
-from celline.functions._base import CellineFunction
-from celline.plugins.collections.generic import DictionaryC, ListC
-from typing import Optional, List, Dict
-from celline.config import Setting
+import subprocess
+from typing import Dict, List, Optional
+
 import inquirer
 import inquirer.themes as themes
-import subprocess
+
+from celline.config import Setting
+from celline.functions._base import CellineFunction
+from celline.plugins.collections.generic import DictionaryC, ListC
 
 
 class Initialize(CellineFunction):

@@ -1,23 +1,24 @@
-from typing import TYPE_CHECKING, Final, NamedTuple, Optional, List
-from celline.functions._base import CellineFunction
-from celline.template import TemplateManager
-from celline.server import ServerSystem
-from celline.sample import SampleResolver
-from celline.DB.dev.handler import HandleResolver
-from celline.DB.dev.model import SampleSchema
-from celline.config import Config
-from celline.middleware import ThreadObservable
-from celline.utils.path import Path
-from celline.config import Setting
 from dataclasses import dataclass
-import pandas as pd
-import polars as pl
-import rich
-from rich.table import Table
-from rich.console import Console
 import os
 import shutil
 import sys
+from typing import TYPE_CHECKING, Final, List, NamedTuple, Optional
+
+import pandas as pd
+import polars as pl
+import rich
+from rich.console import Console
+from rich.table import Table
+
+from celline.DB.dev.handler import HandleResolver
+from celline.DB.dev.model import SampleSchema
+from celline.config import Config, Setting
+from celline.functions._base import CellineFunction
+from celline.middleware import ThreadObservable
+from celline.sample import SampleResolver
+from celline.server import ServerSystem
+from celline.template import TemplateManager
+from celline.utils.path import Path
 
 if TYPE_CHECKING:
     from celline import Project
@@ -156,9 +157,10 @@ class PredictCelltype(CellineFunction):
         r_path: str
         exec_root: str
 
-    def __init__(self, model: CellTypeModel) -> None:
+    def __init__(self, model: CellTypeModel, re_predict: bool = False) -> None:
         self.model = model
         self.cluster_server: Final[Optional[str]] = ServerSystem.cluster_server_name
+        self.re_predict: Final[bool] = re_predict
 
     def register(self) -> str:
         return "predict_celltype"
@@ -176,10 +178,14 @@ class PredictCelltype(CellineFunction):
         __dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species.replace(' ', '_')}/{self.model.suffix if self.model.suffix is not None else 'default'}"
         refh5 = f"{__dist_dir}/reference.h5seurat"
         refpred = f"{__dist_dir}/reference.pred"
+        paths = [__build_path(sample_id) for sample_id in SampleResolver.samples.keys()]
+        if not self.re_predict:
+            paths = [path for path in paths if not path.is_preprocessed]
+
         all_sample_paths = ",".join(
             [
-                f"{__build_path(sample_id).resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
-                for sample_id in SampleResolver.samples.keys()
+                f"{path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
+                for path in paths
             ]
         )
         all_dist_dir = ",".join(

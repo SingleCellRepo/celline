@@ -1,24 +1,24 @@
 from __future__ import annotations
-import sys
-import subprocess
+
 import os
+import subprocess
+import sys
+from typing import TYPE_CHECKING, Callable, Final, List, NamedTuple, Optional
 
-from typing import TYPE_CHECKING, NamedTuple, Callable, Optional, Final, List
-
-import scrublet as scr
-import scanpy as sc
+import matplotlib.pyplot as plt
+import numpy as np
 import polars as pl
 from rich.progress import track
-import numpy as np
-import matplotlib.pyplot as plt
+import scanpy as sc
+import scrublet as scr
 import seaborn as sns
 
 from celline.config import Config, Setting
 from celline.functions._base import CellineFunction
+from celline.middleware import Shell, ThreadObservable
 from celline.sample import SampleResolver
-from celline.middleware import ThreadObservable, Shell
-from celline.template import TemplateManager
 from celline.server import ServerSystem
+from celline.template import TemplateManager
 
 if TYPE_CHECKING:
     from celline import Project

@@ -1,19 +1,19 @@
+import datetime
 import os
 import subprocess
-import datetime
-from typing import TYPE_CHECKING, Optional, Callable, Final, Dict, List, NamedTuple
+from typing import TYPE_CHECKING, Callable, Dict, Final, List, NamedTuple, Optional
 
 import toml
 
+from celline.DB.dev.handler import HandleResolver
+from celline.DB.dev.model import SampleSchema
+from celline.DB.model import SRA_GSE, SRA_GSM, SRA_SRR, Transcriptome
 from celline.config import Config
 from celline.functions._base import CellineFunction
 from celline.middleware import Shell, ThreadObservable
-from celline.DB.model import SRA_GSE, SRA_GSM, SRA_SRR, Transcriptome
-from celline.utils.path import Path
-from celline.template import TemplateManager
 from celline.server import ServerSystem
-from celline.DB.dev.handler import HandleResolver
-from celline.DB.dev.model import SampleSchema
+from celline.template import TemplateManager
+from celline.utils.path import Path
 
 if TYPE_CHECKING:
     from celline import Project
@@ -66,7 +66,9 @@ class Count(CellineFunction):
             for sample_id in samples:
                 resolver = HandleResolver.resolve(sample_id)
                 if resolver is None:
-                    raise ReferenceError(f"Could not resolve target sample id: {sample_id}")
+                    raise ReferenceError(
+                        f"Could not resolve target sample id: {sample_id}"
+                    )
                 sample_schema: SampleSchema = resolver.sample.search(sample_id)
                 if sample_schema.parent is None:
                     raise KeyError("Could not find parent")

@@ -2,16 +2,14 @@ import os
 from typing import TYPE_CHECKING, Dict, Final, List, NamedTuple, Optional, Union
 
 import polars as pl
+from rich.progress import track
 import toml
-
 import tqdm
-from celline.config import Config
-
-from celline.functions._base import CellineFunction
-from celline.utils.serialization import NamedTupleAndPolarsStructure
 
 from celline.DB.dev.handler import HandleResolver
-from rich.progress import track
+from celline.config import Config
+from celline.functions._base import CellineFunction
+from celline.utils.serialization import NamedTupleAndPolarsStructure
 
 if TYPE_CHECKING:
     from celline import Project

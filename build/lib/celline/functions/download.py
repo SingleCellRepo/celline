@@ -1,19 +1,18 @@
-import os
-import subprocess
 import datetime
+import os
 import shutil
+import subprocess
+from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional
 
-from typing import Optional, TYPE_CHECKING, NamedTuple, Callable, List
-
-
-from celline.functions._base import CellineFunction
 from celline.DB.dev.handler import HandleResolver
-from celline.utils.path import Path
-from celline.template import TemplateManager
-from celline.middleware import ThreadObservable
-from celline.server import ServerSystem
-from celline.sample import SampleResolver
 from celline.DB.dev.model import RunSchema, SampleSchema
+from celline.functions._base import CellineFunction
+from celline.middleware import ThreadObservable
+from celline.sample import SampleResolver
+from celline.server import ServerSystem
+from celline.template import TemplateManager
+from celline.utils.path import Path
+
 if TYPE_CHECKING:
     from celline import Project
 
@@ -62,7 +61,9 @@ class Download(CellineFunction):
             sample_schema: SampleSchema = resolver.sample.search(sample_id)
             if sample_schema.children is None:
                 raise NotImplementedError("Children could not found")
-            run_schema: RunSchema = resolver.run.search(sample_schema.children.split(",")[0])
+            run_schema: RunSchema = resolver.run.search(
+                sample_schema.children.split(",")[0]
+            )
             filetype = run_schema.strategy
             if sample_schema.parent is None:
                 raise ValueError("Sample parent must not be none")
@@ -83,7 +84,9 @@ class Download(CellineFunction):
                         logpath=f"{path.resources_sample_log}/download_{datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')}.log",
                         sample_id=sample_id,
                         download_target=path.resources_sample_raw,
-                        download_source=run_schema.raw_link.split(",")[0] if len(sample_schema.raw_link.split(",")) > 0 else "",
+                        download_source=run_schema.raw_link.split(",")[0]
+                        if len(sample_schema.raw_link.split(",")) > 0
+                        else "",
                         run_ids_str=sample_schema.children,
                     ),
                     replaced_path=f"{path.resources_sample_src}/download.sh",
