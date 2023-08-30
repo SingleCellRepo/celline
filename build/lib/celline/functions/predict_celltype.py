@@ -188,12 +188,7 @@ class PredictCelltype(CellineFunction):
                 for path in paths
             ]
         )
-        all_dist_dir = ",".join(
-            [
-                f"{__build_path(sample_id).data_sample}/"
-                for sample_id in SampleResolver.samples.keys()
-            ]
-        )
+        all_dist_dir = ",".join([f"{path.data_sample}/" for path in paths])
         TemplateManager.replace_from_file(
             file_name="predict_celltype.sh",
             structure=PredictCelltype.JobContainer(
