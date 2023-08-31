@@ -38,22 +38,19 @@ for (target_sample_path in all_sample_path_resolved) {
         )
     )
     predicted_file <- paste0(dist_dir[count], "/celltype_predicted.tsv")
-    runquery <- !file.exists(predicted_file)
-    if (runquery) {
-        query <-
-            Read10X_h5(target_sample_path) %>%
-            CreateSeuratObject() %>%
-            NormalizeData()
-        query[["data"]] <- query[["RNA"]]
-        query <-
-            query %>%
-            scPredict(reference) %>%
-            RunUMAP(reduction = "scpred", dims = 1:30)
-        query@meta.data %>%
-            tibble::rownames_to_column("cell") %>%
-            arrange(scpred_prediction) %>%
-            dplyr::select(cell, scpred_prediction) %>%
-            write_tsv(predicted_file)
-    }
+    query <-
+        Read10X_h5(target_sample_path) %>%
+        CreateSeuratObject() %>%
+        NormalizeData()
+    query[["data"]] <- query[["RNA"]]
+    query <-
+        query %>%
+        scPredict(reference) %>%
+        RunUMAP(reduction = "scpred", dims = 1:30)
+    query@meta.data %>%
+        tibble::rownames_to_column("cell") %>%
+        arrange(scpred_prediction) %>%
+        dplyr::select(cell, scpred_prediction) %>%
+        write_tsv(predicted_file)
     count <- count + 1
 }

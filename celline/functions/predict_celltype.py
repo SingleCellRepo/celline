@@ -167,15 +167,6 @@ class PredictCelltype(CellineFunction):
         return "predict_celltype"
 
     def call(self, project: "Project"):
-        def __build_path(sample_id: str):
-            resolver = HandleResolver.resolve(sample_id)
-            if resolver is None:
-                raise ReferenceError(f"Could not resolve target sample id: {sample_id}")
-            sample_schema: SampleSchema = resolver.sample.search(sample_id)
-            if sample_schema.parent is None:
-                raise KeyError("Could not find parent")
-            return Path(sample_schema.parent, sample_id)
-
         __dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species.replace(' ', '_')}/{self.model.suffix if self.model.suffix is not None else 'default'}"
         refh5 = f"{__dist_dir}/reference.h5seurat"
         refpred = f"{__dist_dir}/reference.pred"
@@ -186,7 +177,9 @@ class PredictCelltype(CellineFunction):
         ]
         if not self.re_predict:
             sample_infos = [
-                sample for sample in sample_infos if not sample.path.is_preprocessed
+                sample
+                for sample in sample_infos
+                if not sample.path.is_predicted_celltype
             ]
 
         all_sample_paths = ",".join(
