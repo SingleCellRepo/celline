@@ -93,7 +93,8 @@ class BuildCellTypeModel(CellineFunction):
                     "10X82_2_TCTCTCACCAGTTT",
                 ],
                 "celltype": ["Astrocyte", "Oligodendrocyte", "Neuron"],
-            }
+            },
+            index=None,
         )
         table = Table(show_header=True, header_style="bold magenta")
         console = Console()
@@ -178,17 +179,25 @@ class PredictCelltype(CellineFunction):
         __dist_dir = f"{Config.PROJ_ROOT}/reference/{self.model.species.replace(' ', '_')}/{self.model.suffix if self.model.suffix is not None else 'default'}"
         refh5 = f"{__dist_dir}/reference.h5seurat"
         refpred = f"{__dist_dir}/reference.pred"
-        paths = [__build_path(sample_id) for sample_id in SampleResolver.samples.keys()]
+        sample_infos = [
+            sample
+            for sample in SampleResolver.samples.values()
+            if sample.schema.species == self.model.species
+        ]
         if not self.re_predict:
-            paths = [path for path in paths if not path.is_preprocessed]
+            sample_infos = [
+                sample for sample in sample_infos if not sample.path.is_preprocessed
+            ]
 
         all_sample_paths = ",".join(
             [
-                f"{path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
-                for path in paths
+                f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
+                for sample in sample_infos
             ]
         )
-        all_dist_dir = ",".join([f"{path.data_sample}/" for path in paths])
+        all_dist_dir = ",".join(
+            [f"{sample.path.data_sample}/" for sample in sample_infos]
+        )
         TemplateManager.replace_from_file(
             file_name="predict_celltype.sh",
             structure=PredictCelltype.JobContainer(

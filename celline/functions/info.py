@@ -1,7 +1,8 @@
+from typing import Dict, List, Optional
+
+import celline.data.files as fs
 from celline.functions._base import CellineFunction
 from celline.plugins.collections.generic import DictionaryC, ListC
-from typing import Optional, List, Dict
-import celline.data.files as fs
 
 
 class Info(CellineFunction):
