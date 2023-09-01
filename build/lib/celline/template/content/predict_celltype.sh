@@ -16,7 +16,6 @@ fi
 %r_path/ "%exec_root//celline/template/hook/R/run_scpred.R"\
     "%reference_seurat/"\
     "%reference_celltype/"\
-    "%dist_dir/" \
     "%projects/" \
     "%samples/" \
     "%resources_path/" \
