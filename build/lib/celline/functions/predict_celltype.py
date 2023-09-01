@@ -173,7 +173,8 @@ class PredictCelltype(CellineFunction):
         sample_infos = [
             sample
             for sample in SampleResolver.samples.values()
-            if sample.schema.species == self.model.species
+            if sample.schema.species.replace(" ", "_")
+            == self.model.species.replace(" ", "_")
         ]
         if not self.re_predict:
             sample_infos = [

@@ -2,55 +2,87 @@ pacman::p_load(
     Seurat, tidyverse,
     SeuratDisk, scPred
 )
+#### PARAMS ###################
 args <- commandArgs(trailingOnly = TRUE)
-all_sample_path <- unlist(strsplit(args[1], split = ","))
-reference_seurat <- args[2]
-reference_celltype <- args[3]
-dist_dir <- unlist(strsplit(args[4], split = ","))
+reference_seurat <- args[1]
+reference_celltype <- args[2]
+projects <- unlist(strsplit(args[3], split = ","))
+samples <- unlist(strsplit(args[4], split = ","))
+resources_path <- args[5]
+data_path <- args[6]
+################################
 
-all_sample_path_resolved <- c()
-for (target_sample_path in all_sample_path) {
-    if (!file.exists(target_sample_path)) {
-        message(
-            paste0(
-                "[ERROR!] Cound not resolved: ",
-                target_sample_path,
-                ". Skip"
-            )
+build_h5_path <- function(cnt) {
+    return(
+        paste0(
+            resources_path, "/", projects[cnt], "/", samples[cnt],
+            "/counted/outs/filtered_feature_bc_matrix.h5"
         )
-    } else {
-        all_sample_path_resolved <- c(
-            all_sample_path_resolved, target_sample_path
-        )
-    }
+    )
 }
-message(reference_seurat)
+build_dist_path <- function(cnt) {
+    return(
+        paste0(
+            data_path, "/", projects[cnt], "/", samples[cnt],
+            "/celltype_predicted.tsv"
+        )
+    )
+}
+build_seurat_path <- function(cnt) {
+    return(
+        paste0(
+            data_path, "/", projects[cnt], "/", samples[cnt],
+            "/seurat.rds"
+        )
+    )
+}
 reference <-
     readRDS(reference_seurat)
 reference@misc$scPred <- readRDS(reference_celltype)
 
-count <- 1
-for (target_sample_path in all_sample_path_resolved) {
-    message(
-        paste0(
-            "@ Predicting ", count, "/", length(all_sample_path_resolved), "\n",
-            "└ ( ", target_sample_path, " )"
+for (cnt in length(projects)) {
+    sample_path <- build_h5_path(cnt)
+    dist_path <- build_dist_path(cnt)
+    if (!file.exists(sample_path)) {
+        message(
+            paste0(
+                "[ERROR!] Cound not resolved: ",
+                sample_path,
+                ". Skip"
+            )
         )
-    )
-    predicted_file <- paste0(dist_dir[count], "/celltype_predicted.tsv")
-    query <-
-        Read10X_h5(target_sample_path) %>%
-        CreateSeuratObject() %>%
-        NormalizeData()
-    query[["data"]] <- query[["RNA"]]
-    query <-
+    } else {
+        message(
+            paste0(
+                "@ Predicting ", cnt, "/", length(projects), "\n",
+                "└ ( ", sample_path, " )"
+            )
+        )
+        query <-
+            Read10X_h5(sample_path) %>%
+            CreateSeuratObject() %>%
+            NormalizeData()
+        query[["data"]] <- query[["RNA"]]
+        query <-
+            query %>%
+            scPredict(reference) %>%
+            RunUMAP(reduction = "scpred", dims = 1:30)
+        query@meta.data <-
+            query@meta.data %>%
+            tibble::rownames_to_column("barcode") %>%
+            dplyr::mutate(
+                cell = paste0(
+                    samples[cnt], "_", row_number()
+                ),
+                project = projects[cnt],
+                sample = samples[cnt]
+            ) %>%
+            tibble::rownames_to_column("cell")
+        query@meta.data %>%
+            tibble::rownames_to_column("cell") %>%
+            dplyr::select(cell, scpred_prediction) %>%
+            write_tsv(dist_path)
         query %>%
-        scPredict(reference) %>%
-        RunUMAP(reduction = "scpred", dims = 1:30)
-    query@meta.data %>%
-        tibble::rownames_to_column("cell") %>%
-        arrange(scpred_prediction) %>%
-        dplyr::select(cell, scpred_prediction) %>%
-        write_tsv(predicted_file)
-    count <- count + 1
+            saveRDS(build_seurat_path)
+    }
 }
