@@ -151,12 +151,14 @@ class PredictCelltype(CellineFunction):
         cluster_server: str
         jobname: str
         logpath: str
-        all_sample_path: str
-        reference_seurat: str
-        reference_celltype: str
-        dist_dir: str
         r_path: str
         exec_root: str
+        reference_seurat: str
+        reference_celltype: str
+        projects: str
+        samples: str
+        resources_path: str
+        data_path: str
 
     def __init__(self, model: CellTypeModel, re_predict: bool = False) -> None:
         self.model = model
@@ -183,15 +185,6 @@ class PredictCelltype(CellineFunction):
                 if not sample.path.is_predicted_celltype
             ]
 
-        all_sample_paths = ",".join(
-            [
-                f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
-                for sample in sample_infos
-            ]
-        )
-        all_dist_dir = ",".join(
-            [f"{sample.path.data_sample}/" for sample in sample_infos]
-        )
         TemplateManager.replace_from_file(
             file_name="predict_celltype.sh",
             structure=PredictCelltype.JobContainer(
@@ -201,12 +194,26 @@ class PredictCelltype(CellineFunction):
                 else self.cluster_server,
                 jobname="PredictCelltype",
                 logpath=f"{Config.PROJ_ROOT}/reference/prediction.log",
-                all_sample_path=all_sample_paths,
                 reference_seurat=refh5,
                 reference_celltype=refpred,
-                dist_dir=all_dist_dir,
                 r_path=f"{Setting.r_path}script",
                 exec_root=Config.EXEC_ROOT,
+                projects=",".join(
+                    [
+                        sample.schema.parent
+                        for sample in sample_infos
+                        if sample.schema.parent is not None
+                    ]
+                ),
+                samples=",".join(
+                    [
+                        str(sample.schema.key)
+                        for sample in sample_infos
+                        if sample.schema.parent is not None
+                    ]
+                ),
+                resources_path=f"{Config.PROJ_ROOT}/resources",
+                data_path=f"{Config.PROJ_ROOT}/data",
             ),
             replaced_path=f"{Config.PROJ_ROOT}/reference/prediction.sh",
         )
