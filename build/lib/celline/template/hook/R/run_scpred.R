@@ -39,8 +39,8 @@ build_seurat_path <- function(cnt) {
 reference <-
     readRDS(reference_seurat)
 reference@misc$scPred <- readRDS(reference_celltype)
-
-for (cnt in length(projects)) {
+cnt <- 1
+for (sample in samples) {
     sample_path <- build_h5_path(cnt)
     dist_path <- build_dist_path(cnt)
     if (!file.exists(sample_path)) {
@@ -77,7 +77,7 @@ for (cnt in length(projects)) {
                 project = projects[cnt],
                 sample = samples[cnt]
             ) %>%
-            tibble::rownames_to_column("cell")
+            tibble::column_to_rownames("cell")
         query@meta.data %>%
             tibble::rownames_to_column("cell") %>%
             dplyr::select(cell, scpred_prediction) %>%
@@ -85,4 +85,5 @@ for (cnt in length(projects)) {
         query %>%
             saveRDS(build_seurat_path)
     }
+    cnt <- cnt + 1
 }
