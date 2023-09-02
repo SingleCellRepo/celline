@@ -99,7 +99,7 @@ for (path in all_bcmat_path) {
                         doublet_info_path,
                         show_col_types = FALSE
                     ),
-                    by = "barcodes"
+                    by = c("barcodes" = "cell")
                 )
         }
         if (file.exists(qc_matrix_path)) {
@@ -110,7 +110,7 @@ for (path in all_bcmat_path) {
                         qc_matrix_path,
                         show_col_types = FALSE
                     ),
-                    by = "barcodes"
+                    by = c("barcodes" = "cell")
                 )
         }
         seurat@meta.data <-
