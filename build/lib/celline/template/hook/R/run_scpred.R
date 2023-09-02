@@ -83,7 +83,7 @@ for (sample in samples) {
             dplyr::select(cell, scpred_prediction) %>%
             write_tsv(dist_path)
         query %>%
-            saveRDS(build_seurat_path)
+            saveRDS(build_seurat_path(cnt))
     }
     cnt <- cnt + 1
 }

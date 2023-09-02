@@ -80,13 +80,20 @@ for (path in all_bcmat_path) {
         if (file.exists(celltype_pred_path)) {
             seurat@meta.data <-
                 seurat@meta.data %>%
+                tibble::rownames_to_column("barcodes") %>%
+                mutate(
+                    cell = paste0(
+                        sample_ids[cnt], "_", row_number()
+                    )
+                ) %>%
                 left_join(
                     read_tsv(
                         celltype_pred_path,
                         show_col_types = FALSE
                     ),
                     by = "cell"
-                )
+                ) %>%
+                tibble::column_to_rownames("barcodes")
         }
         if (file.exists(doublet_info_path)) {
             seurat@meta.data <-
