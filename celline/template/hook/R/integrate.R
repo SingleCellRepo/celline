@@ -72,28 +72,24 @@ for (path in all_bcmat_path) {
             )
         seurat@meta.data <-
             seurat@meta.data %>%
-            tibble::rownames_to_column("cell") %>%
+            tibble::rownames_to_column("barcodes") %>%
             mutate(
                 sample = sample_ids[cnt],
-                project = project_ids[cnt]
+                project = project_ids[cnt],
+                cell = paste0(
+                    sample, "_", row_number()
+                )
             )
         if (file.exists(celltype_pred_path)) {
             seurat@meta.data <-
                 seurat@meta.data %>%
-                tibble::rownames_to_column("barcodes") %>%
-                mutate(
-                    cell = paste0(
-                        sample_ids[cnt], "_", row_number()
-                    )
-                ) %>%
                 left_join(
                     read_tsv(
                         celltype_pred_path,
                         show_col_types = FALSE
                     ),
                     by = "cell"
-                ) %>%
-                tibble::column_to_rownames("barcodes")
+                )
         }
         if (file.exists(doublet_info_path)) {
             seurat@meta.data <-
@@ -103,7 +99,7 @@ for (path in all_bcmat_path) {
                         doublet_info_path,
                         show_col_types = FALSE
                     ),
-                    by = "cell"
+                    by = "barcodes"
                 )
         }
         if (file.exists(qc_matrix_path)) {
@@ -114,24 +110,18 @@ for (path in all_bcmat_path) {
                         qc_matrix_path,
                         show_col_types = FALSE
                     ),
-                    by = "cell"
+                    by = "barcodes"
                 )
         }
         seurat@meta.data <-
             seurat@meta.data %>%
-            mutate(
-                old_cellname = cell,
-                new_cellname = paste0(
-                    sample, "_", row_number()
-                )
-            ) %>%
-            tibble::column_to_rownames("cell")
+            tibble::column_to_rownames("barcodes")
         seurat <-
             seurat %>%
             RenameCells(
                 new.names =
                     seurat@meta.data %>%
-                        distinct(new_cellname) %>%
+                        distinct(cell) %>%
                         pull()
             )
         log_out("├─ └─ Done!")
