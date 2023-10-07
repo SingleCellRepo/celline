@@ -69,7 +69,7 @@ class Download(CellineFunction):
                 raise ValueError("Sample parent must not be none")
             path = Path(sample_schema.parent, sample_id)
             path.prepare()
-            if not path.is_downloaded:
+            if not path.is_downloaded and not path.is_counted:
                 if os.path.exists(path.resources_sample_raw_fastqs):
                     shutil.rmtree(path.resources_sample_raw_fastqs)
                 TemplateManager.replace_from_file(
