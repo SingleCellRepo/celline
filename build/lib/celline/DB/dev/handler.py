@@ -1,21 +1,20 @@
-import os
-
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Type, Final, Union, List, Dict, Optional
-from celline.DB.dev.model import BaseModel, BaseSchema
-from celline.utils.exceptions import NullPointException
-from celline.config import Config
 from dataclasses import dataclass
-import toml
+import gc
+import inspect
+import os
+from typing import Dict, Final, Generic, List, Optional, Type, TypeVar, Union
 
 import polars as pl
-import inspect
-import gc
+import toml
 
-from celline.plugins.reflection.module import Module
+from celline.DB.dev.model import BaseModel, BaseSchema
+from celline.config import Config
 from celline.plugins.reflection.activator import Activator
 from celline.plugins.reflection.method import MethodInfo
+from celline.plugins.reflection.module import Module
 from celline.plugins.reflection.type import TypeC
+from celline.utils.exceptions import NullPointException
 
 TProject = TypeVar("TProject", bound=BaseModel)
 TSample = TypeVar("TSample", bound=BaseModel)
@@ -106,6 +105,16 @@ class BaseHandler(Generic[TProject, TSample, TRun], ABC):
             if run.parent is None:
                 raise KeyError("Parent run is None")
             sample = self.sample.search(run.parent, force_search=force_search)
+            if sample.children is not None:
+                if run.key not in sample.children.split(","):
+                    if sample.children == "":
+                        __d = []
+                    else:
+                        __d = sample.children.split(",")
+                    __d.append(f"{run.key}")
+                    sample.children = ",".join(__d)
+            else:
+                sample.children = f"{run.key}"
             self.project.search(str(sample.key), force_search)
             if sample.title is None:
                 sample.title = ""
