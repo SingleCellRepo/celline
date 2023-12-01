@@ -1,15 +1,14 @@
 import os
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
-import pyper as pr
+import numpy as np
 import pandas as pd
 import polars as pl
-import numpy as np
+import pyper as pr
 import scanpy as sc
 
-
-from celline.config import Setting, Config
+from celline.config import Config, Setting
 from celline.data.ggplot import ggplot
 from celline.utils.r_wrap import as_r_bool, as_r_NULL, as_r_nullablestr
 
@@ -219,6 +218,7 @@ seurat %>%
         # self.r.assign("savepath", path)
         os.makedirs(f"{Config.PROJ_ROOT}/cache", exist_ok=True)
         cmd = f"""
+pacman::p_load(Matrix)
 seurat %>%
     LayerData(layer = "data") %>%
     t() %>%
