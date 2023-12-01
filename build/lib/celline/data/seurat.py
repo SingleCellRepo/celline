@@ -218,9 +218,9 @@ seurat %>%
         # self.r.assign("savepath", path)
         os.makedirs(f"{Config.PROJ_ROOT}/cache", exist_ok=True)
         cmd = f"""
-pacman::p_load(Matrix)
+pacman::p_load(Matrix, tidyverse)
 seurat %>%
-    LayerData(layer = "data") %>%
+    LayerData() %>%
     t() %>%
     writeMM("{Config.PROJ_ROOT}/cache/matrix.mtx")
 seurat@meta.data %>%
