@@ -12,3 +12,4 @@ from celline.functions.preprocess import Preprocess
 from celline.functions.reduce import Reduce
 from celline.functions.set_transcriptome import SetTranscriptome
 from celline.functions.sync_DB import SyncDB
+from celline.functions.integrate import Integrate

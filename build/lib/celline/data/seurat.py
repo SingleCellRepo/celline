@@ -1,11 +1,12 @@
 import os
-
+from pathlib import Path
 from typing import Optional, List
 
 import pyper as pr
 import pandas as pd
 import polars as pl
 import numpy as np
+import scanpy as sc
 
 
 from celline.config import Setting, Config
@@ -27,10 +28,16 @@ class Seurat:
         self.r("pacman::p_load(Seurat, SeuratDisk, tidyverse)")
         print("Loading seurat")
         if via_seurat_disk:
-            self.r("seurat <- SeuratDisk::LoadH5Seurat(h5seurat_path)")
+            result = self.r("seurat <- SeuratDisk::LoadH5Seurat(h5seurat_path)")
         else:
-            self.r("seurat <- readRDS(h5seurat_path)")
-        print("--> Done!")
+            result = self.r("seurat <- readRDS(h5seurat_path)")
+        print(
+            f"""
+Done.
+---- Trace --------------
+{result}
+"""
+        )
 
     @property
     def metadata(self) -> pl.DataFrame:
@@ -56,7 +63,7 @@ class Seurat:
         log = self.r(
             f'plt <- DimPlot(seurat, group.by = "{group_by}", split.by = {as_r_nullablestr(split_by)}, pt.size = {as_r_NULL(pt_size)})'
         )
-        print(log[1:])
+        print(log)
         return ggplot(self.r)
 
     def DotPlot(
@@ -198,3 +205,37 @@ plt <-
 """
         )
         return ggplot(self.r)
+
+    def save(self, path: str):
+        # self.r.assign("savepath", path)
+        cmd = f"""
+seurat %>%
+    saveRDS({path})
+"""
+        self.r(cmd)
+        return
+
+    def save_h5ad(self, path: str):
+        # self.r.assign("savepath", path)
+        os.makedirs(f"{Config.PROJ_ROOT}/cache", exist_ok=True)
+        cmd = f"""
+seurat %>%
+    LayerData(layer = "data") %>%
+    t() %>%
+    writeMM("{Config.PROJ_ROOT}/cache/matrix.mtx")
+seurat@meta.data %>%
+    tibble::rownames_to_column("barcodes") %>%
+    write_csv(paste0("{Config.PROJ_ROOT}/cache/barcodes.csv"))
+rownames(seurat) %>%
+    as_tibble() %>%
+    dplyr::rename(features = "value") %>%
+    write_csv(paste0("{Config.PROJ_ROOT}/cache/features.csv"))
+"""
+        self.r(cmd)
+        adata = sc.read_mtx(Path(f"{Config.PROJ_ROOT}/cache/matrix.mtx"))
+        adata.obs = pd.read_csv(f"{Config.PROJ_ROOT}/cache/barcodes.csv")
+        adata.obs.set_index("barcodes", inplace=True)
+        adata.var = pd.read_csv(f"{Config.PROJ_ROOT}/cache/features.csv")
+        adata.write_h5ad(Path(path))
+        os.remove(f"{Config.PROJ_ROOT}/cache/matrix.mtx")
+        return

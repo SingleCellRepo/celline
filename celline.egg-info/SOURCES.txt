@@ -39,6 +39,7 @@ celline/functions/__init__.py
 celline/functions/_base.py
 celline/functions/add.py
 celline/functions/bash.py
+celline/functions/batch_cor.py
 celline/functions/count.py
 celline/functions/create_seurat.py
 celline/functions/download.py
@@ -67,6 +68,7 @@ celline/server/__init__.py
 celline/server/setting.py
 celline/template/__init__.py
 celline/template/manager.py
+celline/template/content/batch_cor.sh
 celline/template/content/build_reference.sh
 celline/template/content/count.sh
 celline/template/content/create_seurat.sh
@@ -74,9 +76,11 @@ celline/template/content/download.sh
 celline/template/content/integrate.sh
 celline/template/content/predict_celltype.sh
 celline/template/content/preprocess.sh
+celline/template/content/pure_merge.sh
 celline/template/hook/R/FilterGenes.R
 celline/template/hook/R/build_reference.R
 celline/template/hook/R/create_seurat.R
 celline/template/hook/R/integrate.R
+celline/template/hook/R/pure_merge.R
 celline/template/hook/R/run_scpred.R
 celline/template/tmp/download.sh
