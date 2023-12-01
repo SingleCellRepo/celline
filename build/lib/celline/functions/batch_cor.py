@@ -176,7 +176,7 @@ class BatchCorrection(CellineFunction):
                 cluster_server=""
                 if self.cluster_server is None
                 else self.cluster_server,
-                logpath=f"{Config.PROJ_ROOT}/integration/logs/integrate_{NOW}.log",
+                logpath=f"{Config.PROJ_ROOT}/batch/logs/integrate_{NOW}.log",
                 py_path=sys.executable,
                 exec_root=Config.EXEC_ROOT,
                 h5ad_path=f"{Config.PROJ_ROOT}/batch/STEP2_merged.h5ad",
