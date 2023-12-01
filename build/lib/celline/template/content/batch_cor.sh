@@ -13,5 +13,5 @@ fi
 if [ -e "$HOME/.zshrc" ]; then
     zsh "$HOME/.zshrc"
 fi
-raw_matrix_path="%raw_matrix_path/"
-%py_path/ "%exec_root//celline/template/hook/py/batch_correlation.py" $raw_matrix_path %output_doublet_path/
+h5ad_path="%h5ad_path/"
+%py_path/ "%exec_root//celline/template/hook/py/batch_correlation.py" $h5ad_path %output_dir/
