@@ -14,4 +14,4 @@ if [ -e "$HOME/.zshrc" ]; then
     zsh "$HOME/.zshrc"
 fi
 raw_matrix_path="%raw_matrix_path/"
-%py_path/ "%exec_root//template/hook/py/preprocess_scrublet.py" $raw_matrix_path %output_doublet_path/
+%py_path/ "%exec_root//template/hook/py/batch_correlation.py" $raw_matrix_path %output_doublet_path/
