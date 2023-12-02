@@ -41,6 +41,7 @@ class BatchCorrection(CellineFunction):
     def __init__(
         self,
         output_file_path: str,
+        scgen_python_executable_path: str,
         filter_func: Optional[Callable[[SampleSchema], bool]],
     ) -> None:
         """
@@ -53,6 +54,7 @@ class BatchCorrection(CellineFunction):
         """
         self.filter_func = filter_func
         self.output_file_path = output_file_path
+        self.scgen_python_executable_path = scgen_python_executable_path
         self.cluster_server: Final[Optional[str]] = ServerSystem.cluster_server_name
 
     def register(self) -> str:
@@ -177,7 +179,7 @@ class BatchCorrection(CellineFunction):
                 if self.cluster_server is None
                 else self.cluster_server,
                 logpath=f"{Config.PROJ_ROOT}/batch/logs/integrate_{NOW}.log",
-                py_path=sys.executable,
+                py_path=self.scgen_python_executable_path,
                 exec_root=Config.EXEC_ROOT,
                 h5ad_path=f"{Config.PROJ_ROOT}/batch/STEP2_merged.h5ad",
                 output_dir=self.output_file_path,
