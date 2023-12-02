@@ -4,13 +4,14 @@ import sys
 import scanpy
 import scgen
 import scipy.io as sio
+from scvi.data import setup_anndata
 
 h5ad_path: str = sys.argv[1]
 output_dir: str = sys.argv[2]
 
 adata = scanpy.read_h5ad(h5ad_path)
 os.makedirs(f"{output_dir}/cache", exist_ok=True)
-scgen.SCGEN.setup_anndata(adata, batch_key="project", labels_key="scpred_prediction")
+setup_anndata(adata, batch_key="project", labels_key="scpred_prediction")
 model = scgen.SCGEN(adata)
 model.save(f"{output_dir}/cache/model_perturbation_prediction.pt", overwrite=True)
 model.train(
