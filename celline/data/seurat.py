@@ -232,7 +232,7 @@ rownames(seurat) %>%
     write_csv(paste0("{Config.PROJ_ROOT}/cache/features.csv"))
 """
         self.r(cmd)
-        adata = sc.read_mtx(Path(f"{Config.PROJ_ROOT}/cache/matrix.mtx"))
+        adata = sc.read_mtx(Path(f"{Config.PROJ_ROOT}/cache/matrix.mtx"), dtype="int32")
         adata.obs = pd.read_csv(f"{Config.PROJ_ROOT}/cache/barcodes.csv")
         adata.obs.set_index("barcodes", inplace=True)
         adata.var = pd.read_csv(f"{Config.PROJ_ROOT}/cache/features.csv")
