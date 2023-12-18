@@ -58,6 +58,7 @@ celline/log/__init__.py
 celline/log/logger.py
 celline/middleware/__init__.py
 celline/middleware/delegate.py
+celline/middleware/r_handler.py
 celline/middleware/shell.py
 celline/middleware/threading.py
 celline/resources/__init__.py
@@ -81,6 +82,7 @@ celline/template/hook/R/FilterGenes.R
 celline/template/hook/R/build_reference.R
 celline/template/hook/R/create_seurat.R
 celline/template/hook/R/integrate.R
+celline/template/hook/R/mnncorrect.R
 celline/template/hook/R/pure_merge.R
 celline/template/hook/R/run_scpred.R
 celline/template/tmp/download.sh

@@ -41,7 +41,6 @@ class BatchCorrection(CellineFunction):
     def __init__(
         self,
         output_file_path: str,
-        scgen_python_executable_path: str,
         filter_func: Optional[Callable[[SampleSchema], bool]],
     ) -> None:
         """
@@ -54,7 +53,6 @@ class BatchCorrection(CellineFunction):
         """
         self.filter_func = filter_func
         self.output_file_path = output_file_path
-        self.scgen_python_executable_path = scgen_python_executable_path
         self.cluster_server: Final[Optional[str]] = ServerSystem.cluster_server_name
 
     def register(self) -> str:
@@ -86,42 +84,37 @@ class BatchCorrection(CellineFunction):
                 )
         os.makedirs(f"{Config.PROJ_ROOT}/batch", exist_ok=True)
         os.makedirs(f"{Config.PROJ_ROOT}/batch/logs", exist_ok=True)
-        # STEP1: Pure integrate
-        self.__pure_merge(target_samples)
-        # STEP2: Convert rds to h5ad
-        self.__convert(project)
+        os.makedirs(f"{Config.PROJ_ROOT}/batch/logs/runtime", exist_ok=True)
+        # [OBS: STEP1]: Pure integrate
+        # self.__pure_merge(target_samples)
+        # [OBS: STEP2]: Convert rds to h5ad
+        # self.__convert(project)
         # STEP3: Correct batch effect
-        self.__correct_batch_effect()
-        # STEP4: Convert to rds (seurat object)
+        self.__correct_batch_effect(target_samples)
 
         return project
 
-    def __pure_merge(self, target_samples: list[SampleInfo]):
+    def __correct_batch_effect(self, target_samples: list[SampleInfo]):
         class JobContainer(NamedTuple):
             nthread: str
             cluster_server: str
-            jobname: str
             logpath: str
             r_path: str
             exec_root: str
+            output_dir: str
             sample_ids: str
             project_ids: str
-            all_bcmat_path: str
-            outfile_path: str
             logpath_runtime: str
-            project_name: str
-            all_data_sample_dir_path: str
 
         NOW: Final[str] = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         TemplateManager.replace_from_file(
-            file_name="pure_merge.sh",
+            file_name="batch_cor.sh",
             structure=JobContainer(
                 nthread=str(1),
                 cluster_server=""
                 if self.cluster_server is None
                 else self.cluster_server,
-                jobname="PureMerge_STEP1",
-                logpath=f"{Config.PROJ_ROOT}/batch/logs/1_puremerge_{NOW}.log",
+                logpath=f"{Config.PROJ_ROOT}/batch/logs/removebatch_{NOW}.log",
                 r_path=f"{Setting.r_path}script",
                 exec_root=Config.EXEC_ROOT,
                 sample_ids=",".join(
@@ -133,59 +126,11 @@ class BatchCorrection(CellineFunction):
                         for sample in target_samples
                     ]
                 ),
-                all_bcmat_path=",".join(
-                    [
-                        f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5"
-                        for sample in target_samples
-                    ]
-                ),
-                all_data_sample_dir_path=",".join(
-                    [f"{sample.path.data_sample}" for sample in target_samples]
-                ),
-                outfile_path=f"{Config.PROJ_ROOT}/batch/STEP1_merged",
-                logpath_runtime=f"{Config.PROJ_ROOT}/batch/logs/RUNTIME_1_puremerge_{NOW}.log",
-                project_name=f"{Setting.name}",
-            ),
-            replaced_path=f"{Config.PROJ_ROOT}/batch/1_puremerge_{NOW}.sh",
-        )
-
-        ThreadObservable.call_shell(
-            [f"{Config.PROJ_ROOT}/batch/1_puremerge_{NOW}.sh"]
-        ).watch()
-
-    def __convert(self, project: "Project"):
-        merged_path = f"{Config.PROJ_ROOT}/batch/STEP1_merged.rds"
-        merged_path_h5ad = f"{Config.PROJ_ROOT}/batch/STEP2_merged.h5ad"
-        project.seurat_from_rawpath(merged_path, via_seurat_disk=False).save_h5ad(
-            merged_path_h5ad
-        )
-
-    def __correct_batch_effect(self):
-        class JobContainer(NamedTuple):
-            nthread: str
-            cluster_server: str
-            logpath: str
-            py_path: str
-            exec_root: str
-            h5ad_path: str
-            output_dir: str
-
-        NOW: Final[str] = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        TemplateManager.replace_from_file(
-            file_name="batch_cor.sh",
-            structure=JobContainer(
-                nthread=str(1),
-                cluster_server=""
-                if self.cluster_server is None
-                else self.cluster_server,
-                logpath=f"{Config.PROJ_ROOT}/batch/logs/integrate_{NOW}.log",
-                py_path=self.scgen_python_executable_path,
-                exec_root=Config.EXEC_ROOT,
-                h5ad_path=f"{Config.PROJ_ROOT}/batch/STEP2_merged.h5ad",
                 output_dir=self.output_file_path,
+                logpath_runtime=f"{Config.PROJ_ROOT}/batch/logs/removebatch_{NOW}.sh",
             ),
-            replaced_path=f"{Config.PROJ_ROOT}/batch/3_removebatch_{NOW}.sh",
+            replaced_path=f"{Config.PROJ_ROOT}/batch/logs/runtime/removebatch_{NOW}.sh",
         )
         ThreadObservable.call_shell(
-            [f"{Config.PROJ_ROOT}/batch/3_removebatch_{NOW}.sh"]
+            [f"{Config.PROJ_ROOT}/batch/removebatch_{NOW}.sh"]
         ).watch()
