@@ -12,6 +12,7 @@ project_ids <- unlist(strsplit(args[2], split = ","))
 outfile_path <- args[3]
 # `<str>` Log file path
 logpath_runtime <- args[4]
+proj_path <- args[5]
 rm(args)
 #########################
 
@@ -26,9 +27,12 @@ seurats <-
     counts %>%
     as.list() %>%
     lapply(function(cnt) {
+        message(paste0(
+            proj_path, "/resources/", project_ids[cnt], "/", sample_ids[cnt], "/counted/outs/filtered_feature_bc_matrix.h5"
+        ))
         seurat <-
             Read10X_h5(paste0(
-                "../../../resources/", project_ids[cnt], "/", sample_ids[cnt], "/counted/outs/filtered_feature_bc_matrix.h5"
+                proj_path, "/resources/", project_ids[cnt], "/", sample_ids[cnt], "/counted/outs/filtered_feature_bc_matrix.h5"
             )) %>%
             CreateSeuratObject(project = "VascAging") %>%
             NormalizeData() %>%
@@ -38,8 +42,8 @@ seurats <-
             seurat@meta.data %>%
             tibble::rownames_to_column("id") %>%
             mutate(
-                sample = sample,
-                cell = paste0(sample, "_", row_number())
+                sample = sample_ids[cnt],
+                cell = paste0(sample_ids[cnt], "_", row_number())
             ) %>%
             left_join(
                 read_tsv(

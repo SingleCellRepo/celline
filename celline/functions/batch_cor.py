@@ -105,6 +105,7 @@ class BatchCorrection(CellineFunction):
             sample_ids: str
             project_ids: str
             logpath_runtime: str
+            proj_path: str
 
         NOW: Final[str] = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         TemplateManager.replace_from_file(
@@ -117,6 +118,7 @@ class BatchCorrection(CellineFunction):
                 logpath=f"{Config.PROJ_ROOT}/batch/logs/removebatch_{NOW}.log",
                 r_path=f"{Setting.r_path}script",
                 exec_root=Config.EXEC_ROOT,
+                proj_path=Config.PROJ_ROOT,
                 sample_ids=",".join(
                     [str(sample.schema.key) for sample in target_samples]
                 ),
@@ -129,7 +131,7 @@ class BatchCorrection(CellineFunction):
                 output_dir=self.output_file_path,
                 logpath_runtime=f"{Config.PROJ_ROOT}/batch/logs/removebatch_{NOW}.sh",
             ),
-            replaced_path=f"{Config.PROJ_ROOT}/batch/logs/runtime/removebatch_{NOW}.sh",
+            replaced_path=f"{Config.PROJ_ROOT}/batch/removebatch_{NOW}.sh",
         )
         ThreadObservable.call_shell(
             [f"{Config.PROJ_ROOT}/batch/removebatch_{NOW}.sh"]

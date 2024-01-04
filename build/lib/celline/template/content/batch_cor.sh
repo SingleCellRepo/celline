@@ -13,4 +13,4 @@ fi
 if [ -e "$HOME/.zshrc" ]; then
     zsh "$HOME/.zshrc"
 fi
-%r_path/ "%exec_root//celline/template/hook/R/mnncorrect.R" "%sample_ids/" "%project_ids/" "%output_dir/" "%logpath_runtime/"
+%r_path/ "%exec_root//celline/template/hook/R/mnncorrect.R" "%sample_ids/" "%project_ids/" "%output_dir/" "%logpath_runtime/" "%proj_path/"
