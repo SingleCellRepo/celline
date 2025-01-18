@@ -1,121 +1,118 @@
-from __future__ import annotations
-
 import os
-import subprocess
-import sys
-from typing import TYPE_CHECKING, Callable, Final, List, NamedTuple, Optional
+from typing import TYPE_CHECKING, Dict, Final, Optional
 
-import matplotlib.pyplot as plt
-import numpy as np
 import polars as pl
-from rich.progress import track
 import scanpy as sc
 import scrublet as scr
-import seaborn as sns
+import toml
 
-from celline.config import Config, Setting
+from celline.config import Config
+from celline.DB.dev.handler import HandleResolver
+from celline.DB.dev.model import SampleSchema
 from celline.functions._base import CellineFunction
-from celline.middleware import Shell, ThreadObservable
-from celline.sample import SampleResolver
-from celline.server import ServerSystem
-from celline.template import TemplateManager
+from celline.utils.path import Path
 
 if TYPE_CHECKING:
-    from celline import Project
-
+    pass
 
 class Preprocess(CellineFunction):
-    """
-    #### Run preprocess (prediction of multiplet & mitochondrial QC)
-    """
-
-    class JobContainer(NamedTuple):
-        cluster_server: str
-        jobname: str
-        logpath: str
-        raw_matrix_path: str
-        output_doublet_path: str
-        output_qc_path: str
-        py_path: str
-        exec_root: str
-        r_path: str
-        log_path: str
-
-    def __init__(
-        self,
-        then: Optional[Callable[[str], None]] = None,
-        catch: Optional[Callable[[subprocess.CalledProcessError], None]] = None,
-    ) -> None:
+    TARGET_CELLTYPE: Final[Optional[list[str]]]
+    def __init__(self, target_celltype: Optional[list[str]] = None):
         """
-        #### Run preprocess (prediction of multiplet & mitochondrial QC)
-        """
-        self.job_mode: Final[ServerSystem.JobType] = ServerSystem.job_system
-        self.then: Final[Optional[Callable[[str], None]]] = then
-        self.catch: Final[
-            Optional[Callable[[subprocess.CalledProcessError], None]]
-        ] = catch
-        self.cluster_server: Final[Optional[str]] = ServerSystem.cluster_server_name
-        if self.job_mode == ServerSystem.JobType.PBS and self.cluster_server is None:
-            raise SyntaxError(
-                "If you use PBS job system, please define cluster_server."
-            )
+        Initialize the Preprocess class.
 
-    def call(self, project: Project):
-        UPPER_PERCENTILE = 97.5
-        # [1st] Prepare doublet
-        all_job_files: List[str] = []
-        for sample in track(
-            SampleResolver.samples.values(),
-            description="Preparing preprocess files...",
-        ):
-            src_file = f"{sample.path.data_sample_src}/preprocess.sh"
-            if not sample.path.is_preprocessed:
-                sample.path.prepare()
-                TemplateManager.replace_from_file(
-                    "preprocess.sh",
-                    Preprocess.JobContainer(
-                        cluster_server=self.cluster_server
-                        if self.cluster_server is not None
-                        else "",
-                        jobname=f"Preprocess_{sample.schema.key}",
-                        logpath=sample.path.data_log_file("preproc"),
-                        output_doublet_path=f"{sample.path.data_sample}/doublet_info.tsv",
-                        output_qc_path=f"{sample.path.data_sample}/qc_matrix.tsv",
-                        raw_matrix_path=f"{sample.path.resources_sample_counted}/outs/filtered_feature_bc_matrix.h5",
-                        py_path=sys.executable,
-                        exec_root=f"{Config.EXEC_ROOT}/celline",
-                        r_path=f"{Setting.r_path}script",
-                        log_path=f"{sample.path.data_sample_log}/qc_matrix.R.log",
-                    ),
-                    replaced_path=src_file,
-                )
-                all_job_files.append(src_file)
-        ThreadObservable.call_shell(all_job_files).watch()
-        for sample in track(
-            SampleResolver.samples.values(),
-            description="Processing estimating doublets...",
-        ):
-            SAMPLE_PATH = sample.path.data_sample
-            if not os.path.isfile(
-                f"{SAMPLE_PATH}/doublet_filtered.tsv"
-            ) and os.path.isfile(f"{SAMPLE_PATH}/doublet_info.tsv"):
-                pldf = pl.read_csv(f"{SAMPLE_PATH}/doublet_info.tsv", separator="\t")
-                # doublet_scoreの95%信頼区間を計算
-                upper_bound = float(
-                    np.percentile(pldf["doublet_score"].to_numpy(), UPPER_PERCENTILE)
-                )
-                (
-                    pldf.with_columns(
-                        (pldf["doublet_score"] > upper_bound).alias("is_doublet_95")
-                    ).write_csv(f"{SAMPLE_PATH}/doublet_filtered.tsv", separator="\t")
-                )
-                sns.histplot(pldf["doublet_score"].to_numpy(), kde=True)
-                plt.axvline(upper_bound, color="red", linestyle="--")
-                plt.xlabel("Doublet Score")
-                plt.ylabel("Frequency")
-                plt.title("Distribution of Doublet Score")
-                plt.savefig(
-                    f"{SAMPLE_PATH}/doublet_distribution.png", format="png", dpi=300
-                )
-                plt.close()
-        return project
+        This constructor sets up the Preprocess object with an optional list of target cell types.
+
+        Parameters:
+        -----------
+        target_celltype : Optional[list[str]], default=None
+            A list of target cell types to be considered in the preprocessing.
+            If None, all cell types will be considered.
+
+        Returns:
+        --------
+        None
+        """
+        self.TARGET_CELLTYPE = target_celltype
+
+    def call(self, project):
+        """
+        Perform preprocessing on the given project's samples.
+
+        This function reads sample information from a TOML file, processes each sample,
+        performs quality control, and generates cell information for further analysis.
+
+        Parameters:
+        -----------
+        project : object
+            The project object containing information about the samples to be processed.
+
+        Returns:
+        --------
+        project : object
+            The input project object, potentially modified during processing.
+
+        Raises:
+        -------
+        ReferenceError
+            If a sample ID cannot be resolved.
+        KeyError
+            If a sample's parent information is missing.
+        """
+        sample_info_file = f"{Config.PROJ_ROOT}/samples.toml"
+        if not os.path.isfile(sample_info_file):
+            print("sample.toml could not be found. Skipping.")
+            return project
+        with open(sample_info_file, mode="r", encoding="utf-8") as f:
+            samples: Dict[str, str] = toml.load(f)
+            for sample_id in samples:
+                resolver = HandleResolver.resolve(sample_id)
+                if resolver is None:
+                    raise ReferenceError(
+                        f"Could not resolve target sample id: {sample_id}"
+                    )
+                sample_schema: SampleSchema = resolver.sample.search(sample_id)
+                if sample_schema.parent is None:
+                    raise KeyError("Could not find parent")
+                path = Path(sample_schema.parent, sample_id)
+                path.prepare()
+                if path.is_counted and path.is_predicted_celltype:
+                    adata = sc.read_10x_h5(path.resources_sample_counted)
+                    obs = (
+                        pl.DataFrame(adata.obs.reset_index())
+                        .rename({"index": "barcode"})
+                        .with_columns(pl.lit(sample_schema.parent).alias("project"))
+                        .with_columns(pl.lit(sample_id).alias("sample"))
+                        .with_columns((pl.concat_str(pl.col("sample"), pl.cum_count("sample"), separator="_")).alias("cell"))
+                        .join(
+                            pl.read_csv(
+                            path.data_sample_predicted_celltype,
+                            separator="\t",
+                            ).rename({"scpred_prediction": "cell_type"}),
+                            on="cell",
+                        )
+                        .with_columns(
+                            (pl.col("cell_type").is_in(pl.select(pl.col("cell_type")).unique(pl.col("cell_type")).get_column("cell_type").to_list() if self.TARGET_CELLTYPE is None else self.TARGET_CELLTYPE)).alias("include")
+                        )
+                    )
+                    scrub = scr.Scrublet(adata.X)
+                    doublet_scores, predicted_doublets = scrub.scrub_doublets(verbose=False)
+                    adata.obs["doublet_score"] = doublet_scores
+                    adata.obs["predicted_doublets"] = predicted_doublets
+                    mt_prefix = "mt-"
+                    adata.var["mt"] = adata.var_names.str.startswith(mt_prefix)
+                    sc.pp.calculate_qc_metrics(
+                        adata,
+                        qc_vars=["mt"],
+                        percent_top=None,
+                        log1p=False,
+                        inplace=True,
+                    )
+                    (
+                        obs
+                        .with_columns(((pl.col("n_genes_by_counts") >= 200) & pl.col("include")).alias("include"))
+                        .with_columns(((pl.col("n_genes_by_counts") <= 5000) & pl.col("include")).alias("include"))
+                        .with_columns(((pl.col("pct_counts_mt") <= 5) & pl.col("include")).alias("include"))
+                        .with_columns(((pl.col("predicted_doublets") is False) & pl.col("include")).alias("include"))
+                        .write_csv(f"{path.data_sample}/cell_info.tsv", separator="\t")
+                    )

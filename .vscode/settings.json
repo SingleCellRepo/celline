@@ -12,5 +12,13 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "none",
+    "workbench.colorCustomizations": {
+        "titleBar.activeForeground": "#CACE66",
+        "titleBar.activeBackground": "#000000",
+        "titleBar.inactiveForeground": "#B3BA16",
+        "titleBar.inactiveBackground": "#000000",
+        "statusBar.noFolderForeground": "#D0DEFC",
+        "statusBar.noFolderBackground": "#172443"
+    }
 }

@@ -1,9 +1,9 @@
-import os
-import shutil
-from celline.config import Config
-from typing import Final, List
 import datetime
 import glob
+import os
+from typing import Final, List
+
+from celline.config import Config
 
 
 class Path:
@@ -52,6 +52,9 @@ class Path:
     @property
     def data_sample(self):
         return f"{self.data}/{self.project_id}/{self.sample_id}"
+    @property
+    def data_sample_predicted_celltype(self):
+        return f"{self.data}/{self.project_id}/{self.sample_id}/celltype_predicted.tsv"
 
     @property
     def data_sample_log(self):
